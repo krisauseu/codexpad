@@ -1,0 +1,8 @@
+{
+  "time": "2026-09-18T05:10:38.760685+00:00",
+  "binary_realpath": "/home/kf/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex",
+  "binary_sha256": "3188814c35471432d4123203e0eb38e5bddc60226e3d7ddf0e59e649ea140022",
+  "os_release": "PRETTY_NAME=\"Ubuntu 24.04.4 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.4 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+  "python": "3.12.3",
+  "test_config": "model = \"gpt-6-astra\"\nmodel_reasoning_effort = \"low\"\napproval_policy = \"on-request\"\nsandbox_mode = \"workspace-write\"\ncli_auth_credentials_store = \"ephemeral\"\n\n[analytics]\nenabled = false\n\n[sandbox_workspace_write]\nnetwork_access = false\nexclude_tmpdir_env_var = true\nexclude_slash_tmp = true\n\n[projects.\"/home/kf/codexpad-spike/workspace\"]\ntrust_level = \"trusted\"\n"
+}

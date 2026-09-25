@@ -1,0 +1,46 @@
+package dev.codexpad.model
+
+import org.json.JSONArray
+import org.json.JSONObject
+
+data class Workspace(val id: String, val name: String)
+data class Message(val id: String, val type: String, val text: String)
+data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null) {
+    val terminal get() = status in setOf("completed", "failed", "interrupted")
+}
+data class CodexThread(
+    val id: String,
+    val preview: String = "",
+    val status: String = "unknown",
+    val turns: List<Turn> = emptyList(),
+)
+
+fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
+private fun JSONObject.optionalText(key: String) = if (isNull(key)) null else optString(key).takeIf { it.isNotEmpty() }
+
+object Wire {
+    fun threadEnvelope(json: JSONObject) = thread(json.getJSONObject("thread"))
+    fun thread(json: JSONObject) = CodexThread(
+        id = json.getString("id"),
+        preview = json.optionalText("preview").orEmpty(),
+        status = json.optJSONObject("status")?.optString("type", "unknown") ?: "unknown",
+        turns = json.optJSONArray("turns")?.objects()?.map(::turn).orEmpty(),
+    )
+    fun turn(json: JSONObject) = Turn(
+        id = json.getString("id"),
+        status = json.optString("status", "unknown"),
+        items = json.optJSONArray("items")?.objects()?.map(::message).orEmpty(),
+        error = json.optJSONObject("error")?.optionalText("message"),
+    )
+    fun message(json: JSONObject): Message {
+        val type = json.getString("type")
+        val text = when (type) {
+            "userMessage" -> json.optJSONArray("content")?.objects()?.joinToString("\n") {
+                if (it.optString("type") == "text") it.optString("text") else "[${it.optString("type")}]"
+            }.orEmpty()
+            "agentMessage" -> json.optString("text")
+            else -> "${type}: ${json.optionalText("status") ?: "Eintrag im Serververlauf"}"
+        }
+        return Message(json.getString("id"), type, text)
+    }
+}

@@ -1,0 +1,15 @@
+{
+  "note": "Original paths; TS excerpts retained under schema/. Full JSON bundles omitted.",
+  "hashes": {
+    "schema/ts/v2/CommandExecParams.ts": "dd12b5380161e2d6474fab41107605fddd58e62fddd4d3f98b66395f9ff206ec",
+    "schema/ts/v2/CommandExecWriteParams.ts": "e55eed746287b53b6ea3c079b29ddf4a97b6bc3a3f385af8f2d9819bab7d3ed7",
+    "schema/ts/v2/CommandExecResizeParams.ts": "50119419c150293c07b43c286011d4157c39a19af3a45ebd26e9ecc6c6439536",
+    "schema/ts/v2/ProcessSpawnParams.ts": "c08240a0e17123c7d51e356848ba6e7e07324f5609e8dc08f21417ca0bd59b2d",
+    "schema/ts/v2/FsWriteFileParams.ts": "bcdebb3360d3a42089f32443850f9e02d33d609f7880b8cc8ed9f7beb1e08a06",
+    "schema/ts/v2/ThreadResumeParams.ts": "e4f64c88205dbba2bf87635d12b9c5803dd6f19b84b5682a71df7fdcf87862fb",
+    "schema/ts/v2/ThreadTurnsListParams.ts": "ff03522c5cd95e5dd0b03a6d918bf7c2453b491fb47b8109420d52fe9df619b3",
+    "schema/ts/v2/ThreadItemsListParams.ts": "14900f931749e2e8c1b4f065a53dd978bc1088ac8f0decf247b3d46078f7185d",
+    "schema/codex_app_server_protocol.schemas.json": "24df528acec2952e6b96c1c2b061f98e60177d059e12c90cf318621380c9de9e",
+    "schema/codex_app_server_protocol.v2.schemas.json": "7b9e7d385fffef8d428cc5490b56ce9c393bd3ed7bc7ccd730956387e723ec05"
+  }
+}

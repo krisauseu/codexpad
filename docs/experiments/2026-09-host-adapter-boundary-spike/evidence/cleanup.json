@@ -1,0 +1,32 @@
+{
+  "uid": 996,
+  "sensitive_runtime_removed": true,
+  "remaining_runtime": [
+    {
+      "path": "code",
+      "uid": 996,
+      "mode": "0o755",
+      "bytes": 4096
+    },
+    {
+      "path": "code/__pycache__",
+      "uid": 0,
+      "mode": "0o755",
+      "bytes": 4096
+    },
+    {
+      "path": "code/__pycache__/adapter.cpython-312.pyc",
+      "uid": 0,
+      "mode": "0o644",
+      "bytes": 20369
+    },
+    {
+      "path": "code/__pycache__/transport.cpython-312.pyc",
+      "uid": 0,
+      "mode": "0o644",
+      "bytes": 5799
+    }
+  ],
+  "active_test_backends": [],
+  "retained": "locked account, isolated root binaries, dummy fixtures, root-owned pycache from discarded run"
+}

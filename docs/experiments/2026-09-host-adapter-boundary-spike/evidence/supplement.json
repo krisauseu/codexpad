@@ -1,0 +1,1726 @@
+[
+  {
+    "id": "MAP-account/bedrock/discover",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/bedrock/setup",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/login/cancel",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/login/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/logout",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/rateLimitResetCredit/consume",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/rateLimits/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/sendAddCreditsNudgeEmail",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/usage/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-account/workspaceMessages/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-app/installed",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-app/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-app/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-collaborationMode/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-command/exec",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-command/exec/resize",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-command/exec/terminate",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-command/exec/write",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-config/batchWrite",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-config/mcpServer/reload",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-config/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-config/value/write",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-configRequirements/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-environment/add",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-environment/info",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-environment/status",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-experimentalFeature/enablement/set",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-experimentalFeature/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-externalAgentConfig/detect",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-externalAgentConfig/import",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-externalAgentConfig/import/readHistories",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-externalAgentConfig/import/recordHistory",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-feedback/upload",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/copy",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/createDirectory",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/getMetadata",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/readDirectory",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/readFile",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/remove",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/unwatch",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/watch",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fs/writeFile",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fuzzyFileSearch",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fuzzyFileSearch/sessionStart",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fuzzyFileSearch/sessionStop",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-fuzzyFileSearch/sessionUpdate",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-getAuthStatus",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-getConversationSummary",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-gitDiffToRemote",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-hooks/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-initialize",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-marketplace/add",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-marketplace/remove",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-marketplace/upgrade",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServer/event/stream/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServer/event/stream/stop",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServer/oauth/login",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServer/resource/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServer/tool/call",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mcpServerStatus/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-memory/reset",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-memory/status",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-mock/experimentalMethod",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-model/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-modelProvider/capabilities/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-permissionProfile/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/install",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/installed",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/reconcile",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/search",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/share/checkout",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/share/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/share/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/share/save",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/share/updateTargets",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/skill/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-plugin/uninstall",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-process/kill",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-process/resizePty",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-process/spawn",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-process/writeStdin",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/create",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/import",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/move",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-project/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/client/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/client/revoke",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/disable",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/enable",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/pairing/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/pairing/status",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-remoteControl/status/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-review/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-server/diagnostics",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-skills/config/write",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-skills/extraRoots/set",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-skills/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/approveGuardianDeniedAction",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/archive",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/attachment/add",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/attachment/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/attachment/remove",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/backgroundTerminals/clean",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/backgroundTerminals/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/backgroundTerminals/terminate",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/compact/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/decrement_elicitation",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/fork",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/goal/clear",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/goal/get",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/goal/set",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/increment_elicitation",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/inject_items",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/items/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/loaded/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/memoryMode/set",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/metadata/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/name/set",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/add",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/reorder",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/queue/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/read",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/appendAudio",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/appendSpeech",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/appendText",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/listVoices",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/realtime/stop",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/resume",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/revert",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/rollback",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/search",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/searchOccurrences",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/section/move",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/settings/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/shellCommand",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/timeline/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/turns/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/unarchive",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-thread/unsubscribe",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-threadSection/create",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-threadSection/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-threadSection/list",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-threadSection/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-turn/interrupt",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-turn/settings/update",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-turn/start",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-turn/steer",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-userVerification/cancel",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-userVerification/delete",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-userVerification/enroll",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-userVerification/status",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-userVerification/verify",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-windowsSandbox/readiness",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-windowsSandbox/setupStart",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "MAP-COVERAGE",
+    "status": "PASS",
+    "layer": "SCHEMA+ADAPTER",
+    "detail": {
+      "methods": 167
+    }
+  },
+  {
+    "id": "D-ENVELOPE-rpc-envelope",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-ENVELOPE-principal-override",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-ENVELOPE-array",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-ENVELOPE-bad-args",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-REVOKE-NEW",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "principal",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-REVOKE-TIMING",
+    "status": "PASS",
+    "layer": "FIXTURE",
+    "detail": {
+      "seconds": 9.469105862081051e-06
+    }
+  },
+  {
+    "id": "F-ADAPTER-CRASH-before",
+    "status": "PASS",
+    "layer": "REAL process+ADAPTER journal",
+    "detail": {
+      "exitcode": 23,
+      "upstream_accepted": false,
+      "backend_pid": 2787816,
+      "backend_alive_after_3s": false,
+      "retry": {
+        "error": "UnknownOutcome: reconcile; never automatically resend"
+      }
+    }
+  },
+  {
+    "id": "F-ADAPTER-CRASH-after",
+    "status": "PASS",
+    "layer": "REAL process+ADAPTER journal",
+    "detail": {
+      "exitcode": 23,
+      "upstream_accepted": true,
+      "backend_pid": 2787895,
+      "backend_alive_after_3s": false,
+      "retry": {
+        "error": "UnknownOutcome: reconcile; never automatically resend"
+      }
+    }
+  },
+  {
+    "id": "D-FOREIGN-EVENT",
+    "status": "PASS",
+    "layer": "FIXTURE",
+    "detail": {
+      "events": [
+        {
+          "type": "item/agentMessage/delta",
+          "data": {
+            "threadId": "own",
+            "turnId": "own-turn",
+            "itemId": "own-item",
+            "delta": "ARTIFICIAL-DEVICE-A-DATA"
+          }
+        }
+      ],
+      "approvals": []
+    }
+  },
+  {
+    "id": "D-POLICY-REVALIDATE",
+    "status": "PASS",
+    "layer": "FIXTURE",
+    "detail": "mismatched backend context rejected"
+  },
+  {
+    "id": "D-MUTATION-PAYLOAD",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "operation reused with different payload",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "L-STOP-UPSTREAM",
+    "status": "UNRESOLVED",
+    "layer": "REAL",
+    "detail": {
+      "first": {
+        "error": "RuntimeError: {\"code\": -32600, \"message\": \"no active turn to interrupt\"}"
+      },
+      "replay": {
+        "error": "RuntimeError: {\"code\": -32600, \"message\": \"no active turn to interrupt\"}"
+      },
+      "history": {
+        "thread": {
+          "id": "01a0c863-32c2-7e71-a615-42ca28806e47",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/tmp/codexpad-boundary-20260922/workspace-a",
+              "runtimeWorkspaceRoots": [
+                "/tmp/codexpad-boundary-20260922/workspace-a"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a0c863-32c2-7e71-a615-42ca28806e47",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "ARTIFICIAL-STOP",
+          "ephemeral": false,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "legacy",
+          "modelProvider": "spike-disabled",
+          "model": "spike-no-model",
+          "reasoningEffort": null,
+          "createdAt": 1790068339,
+          "updatedAt": 1790068339,
+          "recencyAt": 1790068339,
+          "status": {
+            "type": "systemError"
+          },
+          "path": "/tmp/codexpad-boundary-20260922/runtime/codex-home/sessions/2026/09/22/rollout-2026-09-22T11-12-19-01a0c863-32c2-7e71-a615-42ca28806e47.jsonl",
+          "cwd": "/tmp/codexpad-boundary-20260922/workspace-a",
+          "cliVersion": "0.155.0",
+          "originator": "boundary_spike",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": [
+            {
+              "id": "01a0c863-32ea-7d43-b73b-ba9f3ffd8c20",
+              "items": [
+                {
+                  "type": "userMessage",
+                  "id": "item-1",
+                  "clientId": null,
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "ARTIFICIAL-STOP",
+                      "text_elements": []
+                    }
+                  ]
+                }
+              ],
+              "itemsView": "full",
+              "status": "failed",
+              "error": {
+                "message": "Missing environment variable: `CODEXPAD_SPIKE_INTENTIONALLY_UNSET`.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1790068339,
+              "completedAt": 1790068339,
+              "durationMs": 28
+            }
+          ]
+        }
+      },
+      "limit": "no active model or tool; cannot claim general idempotency"
+    }
+  },
+  {
+    "id": "D-TARGET-MARKERS",
+    "status": "PASS",
+    "layer": "OS verification",
+    "detail": {
+      "sha256": {
+        "/tmp/codexpad-boundary-20260922/workspace-a/allowed-a.txt": "93f808088139ad11ae983976499f7913701cbb6d9558f978488ae04d1c22b393",
+        "/tmp/codexpad-boundary-20260922/workspace-b/allowed-b.txt": "2674af76159da41e990561438e2414b85406e6e02795c3c99789357bf1ef6913",
+        "/tmp/codexpad-boundary-20260922/private-area/dummy-secret.txt": "0638d3a78a0971d0009d4006359c9a58e61cb470e201ae5d8094553aa63a79d4"
+      },
+      "agent_outside_marker_absent": true
+    }
+  }
+]

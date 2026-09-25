@@ -1,0 +1,10 @@
+pad.feichti.dev {
+	# Access logging is intentionally disabled. Do not enable debug or log_credentials.
+	request_body {
+		max_size 16384
+	}
+	reverse_proxy 127.0.0.1:8765 {
+		# Flush SSE immediately; keep Authorization for the API's own authentication.
+		flush_interval -1
+	}
+}

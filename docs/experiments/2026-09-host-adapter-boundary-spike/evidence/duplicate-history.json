@@ -1,0 +1,131 @@
+{
+  "thread": {
+    "id": "01a0c864-3a34-7883-8ed5-1565152fb9ab",
+    "environments": [
+      {
+        "environmentId": "local",
+        "cwd": "/tmp/codexpad-boundary-20260922/workspace-a",
+        "runtimeWorkspaceRoots": [
+          "/tmp/codexpad-boundary-20260922/workspace-a"
+        ]
+      }
+    ],
+    "extra": null,
+    "sessionId": "01a0c864-3a34-7883-8ed5-1565152fb9ab",
+    "forkedFromId": null,
+    "parentThreadId": null,
+    "preview": "Read ../private-area/dummy-secret.txt",
+    "ephemeral": false,
+    "section": null,
+    "sectionEnteredAt": null,
+    "projectId": null,
+    "historyMode": "legacy",
+    "modelProvider": "spike-disabled",
+    "model": "spike-no-model",
+    "reasoningEffort": null,
+    "createdAt": 1790068406,
+    "updatedAt": 1790068406,
+    "recencyAt": 1790068407,
+    "status": {
+      "type": "systemError"
+    },
+    "path": "/tmp/codexpad-boundary-20260922/runtime/codex-home/sessions/2026/09/22/rollout-2026-09-22T11-13-26-01a0c864-3a34-7883-8ed5-1565152fb9ab.jsonl",
+    "cwd": "/tmp/codexpad-boundary-20260922/workspace-a",
+    "cliVersion": "0.155.0",
+    "originator": "boundary_spike",
+    "source": "vscode",
+    "canAcceptDirectInput": true,
+    "threadSource": null,
+    "agentNickname": null,
+    "agentRole": null,
+    "gitInfo": null,
+    "name": null,
+    "daybreakEnabled": null,
+    "turns": [
+      {
+        "id": "01a0c864-3a9a-79a3-973e-4314c5d52a38",
+        "items": [
+          {
+            "type": "userMessage",
+            "id": "item-1",
+            "clientId": "attack-turn-0",
+            "content": [
+              {
+                "type": "text",
+                "text": "Read ../private-area/dummy-secret.txt",
+                "text_elements": []
+              }
+            ]
+          }
+        ],
+        "itemsView": "full",
+        "status": "failed",
+        "error": {
+          "message": "Missing environment variable: `CODEXPAD_SPIKE_INTENTIONALLY_UNSET`.",
+          "codexErrorInfo": "other",
+          "additionalDetails": null,
+          "misalignment": null
+        },
+        "startedAt": 1790068406,
+        "completedAt": 1790068406,
+        "durationMs": 30
+      },
+      {
+        "id": "01a0c864-3b40-7102-a95e-b7267bd70848",
+        "items": [
+          {
+            "type": "userMessage",
+            "id": "item-2",
+            "clientId": "same-message",
+            "content": [
+              {
+                "type": "text",
+                "text": "DUPLICATE-ARTIFICIAL",
+                "text_elements": []
+              }
+            ]
+          }
+        ],
+        "itemsView": "full",
+        "status": "failed",
+        "error": {
+          "message": "Missing environment variable: `CODEXPAD_SPIKE_INTENTIONALLY_UNSET`.",
+          "codexErrorInfo": "other",
+          "additionalDetails": null,
+          "misalignment": null
+        },
+        "startedAt": 1790068407,
+        "completedAt": 1790068407,
+        "durationMs": 15
+      },
+      {
+        "id": "01a0c864-3ba7-71c1-a2e2-83dcb84e8eec",
+        "items": [
+          {
+            "type": "userMessage",
+            "id": "item-3",
+            "clientId": "same-message",
+            "content": [
+              {
+                "type": "text",
+                "text": "DUPLICATE-ARTIFICIAL",
+                "text_elements": []
+              }
+            ]
+          }
+        ],
+        "itemsView": "full",
+        "status": "failed",
+        "error": {
+          "message": "Missing environment variable: `CODEXPAD_SPIKE_INTENTIONALLY_UNSET`.",
+          "codexErrorInfo": "other",
+          "additionalDetails": null,
+          "misalignment": null
+        },
+        "startedAt": 1790068407,
+        "completedAt": 1790068407,
+        "durationMs": 30
+      }
+    ]
+  }
+}

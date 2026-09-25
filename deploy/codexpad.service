@@ -1,0 +1,32 @@
+[Unit]
+Description=CodexPad single-user API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=codexpad
+Group=codexpad
+WorkingDirectory=/opt/codexpad
+Environment=HOME=/var/lib/codexpad
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/codexpad/server.env
+ExecStart=/usr/bin/python3 -B /opt/codexpad/server/codexpad_server.py
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+KillMode=control-group
+UMask=0077
+StateDirectory=codexpad
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/codexpad
+
+[Install]
+WantedBy=multi-user.target

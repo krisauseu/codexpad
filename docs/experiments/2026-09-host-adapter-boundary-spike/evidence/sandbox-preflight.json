@@ -1,0 +1,5 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted\n"
+}

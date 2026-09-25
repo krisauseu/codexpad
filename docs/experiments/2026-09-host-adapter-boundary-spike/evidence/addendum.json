@@ -1,0 +1,109 @@
+[
+  {
+    "id": "D-EXTRA-create",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "fields",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-EXTRA-load",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "fields",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "D-EXTRA-history",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "fields",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "L-TURN-BACKEND",
+    "status": "PASS",
+    "layer": "REAL+FAULT",
+    "detail": {
+      "executed_turn": "01a0c866-0a44-7830-bb3a-c2a8b9230dcd",
+      "retry": {
+        "error": "UnknownOutcome: reconcile; never automatically resend"
+      },
+      "forwarded": 0,
+      "history": {
+        "thread": "01a0c866-09d5-7383-a7a4-1ff1212ce1bb",
+        "turns": [
+          {
+            "id": "01a0c866-0a44-7830-bb3a-c2a8b9230dcd",
+            "items": [
+              {
+                "type": "userMessage",
+                "id": "item-1",
+                "clientId": "lost-turn",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ARTIFICIAL-LOST-TURN",
+                    "text_elements": []
+                  }
+                ]
+              }
+            ],
+            "itemsView": "full",
+            "status": "failed",
+            "error": {
+              "message": "Missing environment variable: `CODEXPAD_SPIKE_INTENTIONALLY_UNSET`.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "startedAt": 1790068525,
+            "completedAt": 1790068525,
+            "durationMs": 27
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "L-STOP-BACKEND",
+    "status": "PASS",
+    "layer": "FIXTURE",
+    "detail": {
+      "error": "UnknownOutcome: reconcile; never automatically resend"
+    }
+  },
+  {
+    "id": "A-COMMAND-ACCEPT",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "permission expansion disabled",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "A-RESOLVED",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "approval context",
+      "forwarded": 0
+    }
+  },
+  {
+    "id": "A-EXTRA-PERMISSIONS",
+    "status": "PASS",
+    "layer": "ADAPTER",
+    "detail": {
+      "reason": "fields",
+      "forwarded": 0
+    }
+  }
+]

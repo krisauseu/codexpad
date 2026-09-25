@@ -1,0 +1,16 @@
+model = "gpt-6-astra"
+model_reasoning_effort = "low"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+cli_auth_credentials_store = "ephemeral"
+
+[analytics]
+enabled = false
+
+[sandbox_workspace_write]
+network_access = false
+exclude_tmpdir_env_var = true
+exclude_slash_tmp = true
+
+[projects."/home/kf/codexpad-spike/workspace"]
+trust_level = "trusted"

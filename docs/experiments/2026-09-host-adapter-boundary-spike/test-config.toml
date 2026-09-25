@@ -1,0 +1,25 @@
+model = "spike-no-model"
+model_provider = "spike-disabled"
+approval_policy = "on-request"
+approvals_reviewer = "user"
+sandbox_mode = "workspace-write"
+web_search = "disabled"
+cli_auth_credentials_store = "ephemeral"
+[sandbox_workspace_write]
+network_access = false
+exclude_tmpdir_env_var = true
+exclude_slash_tmp = true
+[model_providers.spike-disabled]
+name = "Credential-free blocked test provider"
+base_url = "http://127.0.0.1:9/v1"
+env_key = "CODEXPAD_SPIKE_INTENTIONALLY_UNSET"
+wire_api = "responses"
+requires_openai_auth = false
+request_max_retries = 0
+stream_max_retries = 0
+[analytics]
+enabled = false
+[feedback]
+enabled = false
+[features]
+shell_snapshot = false

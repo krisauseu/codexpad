@@ -1,0 +1,205 @@
+{
+  "checks": {
+    "baseline_no_tool_turn_completed": true,
+    "approved_file_exists_with_exact_content": true,
+    "declined_file_absent": true,
+    "approval_replayed_identically": true,
+    "reconnected_approved_file_exact": true,
+    "marker_after_reconnect": true,
+    "marker_after_server_restart": true,
+    "stream_gap_not_replayed": true,
+    "full_400_line_response_recovered": true,
+    "offline_turn_completed_and_recovered": true,
+    "offline_turn_completed_notification_not_replayed": true,
+    "fs_outside_workspace_in_spike_exact": true,
+    "fs_watch_event": true,
+    "server_restart_pending_file_absent": true,
+    "server_restart_pending_turn_interrupted": true,
+    "server_restart_no_approval_replay": true
+  },
+  "event_counts": {
+    "01-basic.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "account/login/completed": 1,
+      "account/updated": 1,
+      "thread/started": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "thread/status/changed": 4,
+      "turn/started": 1,
+      "item/started": 3,
+      "item/completed": 3,
+      "item/agentMessage/delta": 16,
+      "thread/tokenUsage/updated": 2,
+      "account/rateLimits/updated": 2,
+      "item/commandExecution/requestApproval": 1,
+      "thread/goal/cleared": 1,
+      "serverRequest/resolved": 1,
+      "turn/completed": 1
+    },
+    "01-observer.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "thread/tokenUsage/updated": 2,
+      "thread/goal/cleared": 1,
+      "item/commandExecution/requestApproval": 1,
+      "serverRequest/resolved": 1,
+      "thread/status/changed": 2,
+      "account/rateLimits/updated": 1,
+      "turn/completed": 1
+    },
+    "02-baseline.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "account/login/completed": 1,
+      "account/updated": 1,
+      "thread/started": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "thread/status/changed": 4,
+      "turn/started": 2,
+      "item/started": 5,
+      "item/completed": 5,
+      "item/agentMessage/delta": 46,
+      "thread/tokenUsage/updated": 3,
+      "account/rateLimits/updated": 3,
+      "turn/completed": 2
+    },
+    "03-reconnect.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "thread/tokenUsage/updated": 6,
+      "thread/goal/cleared": 1,
+      "thread/status/changed": 12,
+      "turn/started": 4,
+      "item/started": 13,
+      "item/completed": 12,
+      "item/agentMessage/delta": 123,
+      "account/rateLimits/updated": 5,
+      "turn/completed": 3,
+      "thread/started": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "item/fileChange/requestApproval": 3,
+      "serverRequest/resolved": 2
+    },
+    "04-pending-reconnect.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "thread/tokenUsage/updated": 3,
+      "thread/goal/cleared": 1,
+      "item/fileChange/requestApproval": 1,
+      "serverRequest/resolved": 1,
+      "thread/status/changed": 2,
+      "item/completed": 2,
+      "account/rateLimits/updated": 2,
+      "item/started": 1,
+      "item/agentMessage/delta": 32,
+      "turn/completed": 1,
+      "fs/changed": 1
+    },
+    "05-server-restart.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "account/login/completed": 1,
+      "account/updated": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "thread/status/changed": 3,
+      "thread/tokenUsage/updated": 2,
+      "thread/goal/cleared": 1,
+      "turn/started": 1,
+      "item/started": 2,
+      "item/completed": 2,
+      "item/agentMessage/delta": 7,
+      "account/rateLimits/updated": 1,
+      "turn/completed": 1
+    },
+    "06-after-server-restart.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1
+    },
+    "06-process-owner.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "command/exec/outputDelta": 2,
+      "process/outputDelta": 1
+    },
+    "06-reconnect-False.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "process/outputDelta": 1
+    },
+    "06-reconnect-True.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "process/outputDelta": 1
+    },
+    "07-active-owner.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "account/login/completed": 1,
+      "account/updated": 1,
+      "thread/started": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "thread/status/changed": 1,
+      "turn/started": 1,
+      "item/started": 2,
+      "item/completed": 1,
+      "item/agentMessage/delta": 2
+    },
+    "07-active-reconnect.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "thread/goal/cleared": 1,
+      "item/agentMessage/delta": 297,
+      "item/completed": 1,
+      "thread/tokenUsage/updated": 1,
+      "account/rateLimits/updated": 1,
+      "thread/status/changed": 1,
+      "turn/completed": 1
+    },
+    "07-offline-completed.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "thread/goal/cleared": 1
+    },
+    "08-pending-after-restart.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "account/login/completed": 1,
+      "account/updated": 1,
+      "mcpServer/startupStatus/updated": 2,
+      "thread/status/changed": 3,
+      "thread/goal/cleared": 1,
+      "turn/started": 1,
+      "item/started": 2,
+      "item/completed": 2,
+      "item/agentMessage/delta": 16,
+      "thread/tokenUsage/updated": 1,
+      "account/rateLimits/updated": 1,
+      "turn/completed": 1
+    },
+    "08-pending-before-restart.jsonl": {
+      "configWarning": 2,
+      "remoteControl/status/changed": 2,
+      "account/login/completed": 2,
+      "account/updated": 2,
+      "thread/started": 2,
+      "mcpServer/startupStatus/updated": 4,
+      "thread/status/changed": 4,
+      "turn/started": 2,
+      "item/started": 6,
+      "item/completed": 4,
+      "item/agentMessage/delta": 65,
+      "item/fileChange/requestApproval": 2
+    },
+    "09-direct-git.jsonl": {
+      "configWarning": 1,
+      "remoteControl/status/changed": 1,
+      "process/exited": 2
+    }
+  },
+  "stream": {
+    "before_disconnect": "1\n",
+    "after_reconnect_prefix": "8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n3",
+    "hydrated_characters": 1491
+  }
+}

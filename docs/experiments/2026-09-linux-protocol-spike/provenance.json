@@ -1,0 +1,59 @@
+[
+  {
+    "source": "codexpad-spike/client/live_resume.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/live_resume.py",
+    "sha256": "75970c05db42c45afb486cabebfa91e7aea107843262ec3bbd3a4f1a8161b9a6"
+  },
+  {
+    "source": "codexpad-spike/client/suite.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/suite.py",
+    "sha256": "0d592398ef246cb9b6ff282afe6db5dc5e6d558bd1a01c35eb88a3984fdac4d7"
+  },
+  {
+    "source": "codexpad-spike/client/processes.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/processes.py",
+    "sha256": "466625f7bbda39c98add6c83e228e3e6171aa9d369afc2a4aeca3b671dab8c36"
+  },
+  {
+    "source": "codexpad-spike/client/probe.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/probe.py",
+    "sha256": "8e2b062f836f6c3431d5dc46ac8d77b172b036f72544abd6344d08502c20aff2"
+  },
+  {
+    "source": "codexpad-spike/client/direct_git.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/direct_git.py",
+    "sha256": "439a30586daac18e77cfc4720f52d13cc0a8ac82600f7e1370732bdf8ccd98e6"
+  },
+  {
+    "source": "codexpad-spike/client/evidence.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/evidence.py",
+    "sha256": "2d8db422c016a3176f906e4714410a7a291ff93132ed6b1cc144aca56e9a6d98"
+  },
+  {
+    "source": "codexpad-spike/client/analyze.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/analyze.py",
+    "sha256": "51032d78d9e96cf9c24211d696a8bf8f6f852fd786fcf197080438d85b54622d"
+  },
+  {
+    "source": "codexpad-spike/client/pending_restart.py",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/client/pending_restart.py",
+    "sha256": "f18944d66f63470d71f70fbec87c7a7cad2dc1b5451631b28bae99ebaa3768f9"
+  },
+  {
+    "source": "codex-home/results/results/verification.json",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/verification.json",
+    "sha256": "27a140908ad6f8dd9f5187abc864804810c5502dd010d866b71a3938d0f04d85"
+  },
+  {
+    "source": "codex-home/results/protocol-spike.md",
+    "archive": "docs/experiments/2026-09-linux-protocol-spike/protocol-spike.md",
+    "source_sha256": "c6083bd094fc25aa4e2f419a602a551a68773d6696eb039594bb11edd924950f",
+    "change": "Archive notice and local Markdown links only"
+  },
+  {
+    "source": "codex-home/results/pty-persistence.md",
+    "archive": "docs/experiments/2026-09-command-exec-persistence/pty-persistence.md",
+    "source_sha256": "895ec85260e5f247440c9275c4a6eec7ce88b5ce0b9c928657dbb0d479c9893e",
+    "change": "Archive notice and local Markdown links only"
+  }
+]

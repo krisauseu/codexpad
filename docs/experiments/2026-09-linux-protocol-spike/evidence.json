@@ -1,0 +1,1271 @@
+{
+  "source_logs": {
+    "01-basic.jsonl": {
+      "sha256": "0fb92c125b26e27b3115d3345e77a0754c7d911158e0c68f6dfdba58ee16efda",
+      "rows": 52,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "account/login/completed": 1,
+        "account/updated": 1,
+        "thread/started": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "thread/status/changed": 4,
+        "turn/started": 1,
+        "item/started": 3,
+        "item/completed": 3,
+        "item/agentMessage/delta": 16,
+        "thread/tokenUsage/updated": 2,
+        "account/rateLimits/updated": 2,
+        "item/commandExecution/requestApproval": 1,
+        "thread/goal/cleared": 1,
+        "serverRequest/resolved": 1,
+        "turn/completed": 1
+      }
+    },
+    "01-observer.jsonl": {
+      "sha256": "ccffcfe3e747d428dfec99f2b22a2eb838071abe5d425faf9a7b2cec06b12571",
+      "rows": 18,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "thread/tokenUsage/updated": 2,
+        "thread/goal/cleared": 1,
+        "item/commandExecution/requestApproval": 1,
+        "serverRequest/resolved": 1,
+        "thread/status/changed": 2,
+        "account/rateLimits/updated": 1,
+        "turn/completed": 1
+      }
+    },
+    "02-baseline.jsonl": {
+      "sha256": "9263086c8c0e3599480641a1fc48539d4cd048bd4bf1d41882603113a081ba84",
+      "rows": 93,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "account/login/completed": 1,
+        "account/updated": 1,
+        "thread/started": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "thread/status/changed": 4,
+        "turn/started": 2,
+        "item/started": 5,
+        "item/completed": 5,
+        "item/agentMessage/delta": 46,
+        "thread/tokenUsage/updated": 3,
+        "account/rateLimits/updated": 3,
+        "turn/completed": 2
+      }
+    },
+    "03-reconnect.jsonl": {
+      "sha256": "3a10d38d9bf5a1a7169b97c527064437a1154c21e339b925b89dfc72c3078385",
+      "rows": 211,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "thread/tokenUsage/updated": 6,
+        "thread/goal/cleared": 1,
+        "thread/status/changed": 12,
+        "turn/started": 4,
+        "item/started": 13,
+        "item/completed": 12,
+        "item/agentMessage/delta": 123,
+        "account/rateLimits/updated": 5,
+        "turn/completed": 3,
+        "thread/started": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "item/fileChange/requestApproval": 3,
+        "serverRequest/resolved": 2
+      }
+    },
+    "04-pending-reconnect.jsonl": {
+      "sha256": "8c6301e091077d79b15c0ed806f7231fa0f658a2973f527796f5869dcd01f989",
+      "rows": 74,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "thread/tokenUsage/updated": 3,
+        "thread/goal/cleared": 1,
+        "item/fileChange/requestApproval": 1,
+        "serverRequest/resolved": 1,
+        "thread/status/changed": 2,
+        "item/completed": 2,
+        "account/rateLimits/updated": 2,
+        "item/started": 1,
+        "item/agentMessage/delta": 32,
+        "turn/completed": 1,
+        "fs/changed": 1
+      }
+    },
+    "05-server-restart.jsonl": {
+      "sha256": "72167317e653a7bb2be9f91c0688da62229789958cbdf7a00fa58f28353450a0",
+      "rows": 40,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "account/login/completed": 1,
+        "account/updated": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "thread/status/changed": 3,
+        "thread/tokenUsage/updated": 2,
+        "thread/goal/cleared": 1,
+        "turn/started": 1,
+        "item/started": 2,
+        "item/completed": 2,
+        "item/agentMessage/delta": 7,
+        "account/rateLimits/updated": 1,
+        "turn/completed": 1
+      }
+    },
+    "06-after-server-restart.jsonl": {
+      "sha256": "2aff1821cdd37091e8c21f8d3efa4bd92bafb31ba629286c4ed5c9a7cf9f452d",
+      "rows": 8,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1
+      }
+    },
+    "06-process-owner.jsonl": {
+      "sha256": "5f49adef352873968906d23439e4dc60631c966a16677adccfdf49ed1f798aeb",
+      "rows": 15,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "command/exec/outputDelta": 2,
+        "process/outputDelta": 1
+      }
+    },
+    "06-reconnect-False.jsonl": {
+      "sha256": "8b8774b4b2c26479709f3bb726a4dc3d308a384ed62edeb0364cfc2eba7189c9",
+      "rows": 13,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "process/outputDelta": 1
+      }
+    },
+    "06-reconnect-True.jsonl": {
+      "sha256": "af4057acbda6dfc6875d27440f3deb1e19e2122fd00c9ccd60380d1eb4d92c8e",
+      "rows": 12,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "process/outputDelta": 1
+      }
+    },
+    "07-active-owner.jsonl": {
+      "sha256": "70040fea645e3b3ff94146402dee82727dc06bf6c3feca1301ee4ac9b02347d7",
+      "rows": 24,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "account/login/completed": 1,
+        "account/updated": 1,
+        "thread/started": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "thread/status/changed": 1,
+        "turn/started": 1,
+        "item/started": 2,
+        "item/completed": 1,
+        "item/agentMessage/delta": 2
+      }
+    },
+    "07-active-reconnect.jsonl": {
+      "sha256": "6f5f15dc73633bab5c4f5c906386e9c058aaf2e5ada49826d758f7e2408d6f85",
+      "rows": 321,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "thread/goal/cleared": 1,
+        "item/agentMessage/delta": 297,
+        "item/completed": 1,
+        "thread/tokenUsage/updated": 1,
+        "account/rateLimits/updated": 1,
+        "thread/status/changed": 1,
+        "turn/completed": 1
+      }
+    },
+    "07-offline-completed.jsonl": {
+      "sha256": "1fc026d5b98f22aec778edf35781220c268cbd73a85e59f50ae0eb4289ea2ea2",
+      "rows": 11,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "thread/goal/cleared": 1
+      }
+    },
+    "08-pending-after-restart.jsonl": {
+      "sha256": "811a930584a420fa5ceffa5bdd0c34f291b1eb6104d3a1ad25d708191f705807",
+      "rows": 50,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "account/login/completed": 1,
+        "account/updated": 1,
+        "mcpServer/startupStatus/updated": 2,
+        "thread/status/changed": 3,
+        "thread/goal/cleared": 1,
+        "turn/started": 1,
+        "item/started": 2,
+        "item/completed": 2,
+        "item/agentMessage/delta": 16,
+        "thread/tokenUsage/updated": 1,
+        "account/rateLimits/updated": 1,
+        "turn/completed": 1
+      }
+    },
+    "08-pending-before-restart.jsonl": {
+      "sha256": "a9f38bfab0ad1ccd061ed198fd6b63d07a86d5e78e330049a562d684502e43ae",
+      "rows": 115,
+      "incoming_method_counts": {
+        "configWarning": 2,
+        "remoteControl/status/changed": 2,
+        "account/login/completed": 2,
+        "account/updated": 2,
+        "thread/started": 2,
+        "mcpServer/startupStatus/updated": 4,
+        "thread/status/changed": 4,
+        "turn/started": 2,
+        "item/started": 6,
+        "item/completed": 4,
+        "item/agentMessage/delta": 65,
+        "item/fileChange/requestApproval": 2
+      }
+    },
+    "09-direct-git.jsonl": {
+      "sha256": "3a9dc7cc5fb5a93dfb9883a9dcf9aecc648907ae309d31b0c7dc9ea97ba76434",
+      "rows": 18,
+      "incoming_method_counts": {
+        "configWarning": 1,
+        "remoteControl/status/changed": 1,
+        "process/exited": 2
+      }
+    },
+    "cleanup.jsonl": {
+      "sha256": "a145336866cc9c1e8011e5d7aab80624f8f3775af7dad5ca41d11de581480712",
+      "rows": 1,
+      "incoming_method_counts": {}
+    },
+    "direct-git-observations.jsonl": {
+      "sha256": "a2c1961f16f2e61286bf0317da3a74f27e76db85f25c8bfd04ee6f2ff40cba4c",
+      "rows": 2,
+      "incoming_method_counts": {}
+    },
+    "environment.jsonl": {
+      "sha256": "439b2b9ca465f33e517b652f6f51bb9cbd4e055f0c5d1a6bbadf52849baf2c6b",
+      "rows": 20,
+      "incoming_method_counts": {}
+    },
+    "git-diff.jsonl": {
+      "sha256": "7c296cb510784c84247c7e90bf56c00e5740bc4c660e715e671396cc85b380cb",
+      "rows": 1,
+      "incoming_method_counts": {}
+    },
+    "lifecycle.jsonl": {
+      "sha256": "7d7c7a51ef2cad9ee51e120f66f3c7c30dd382a5a0ea735ea665fb3590cd73e3",
+      "rows": 22,
+      "incoming_method_counts": {}
+    },
+    "live-observations.jsonl": {
+      "sha256": "a3e55d82b5e819e89ff9360cee7aef100bf696f4e789052e15975f98683c9b0f",
+      "rows": 5,
+      "incoming_method_counts": {}
+    },
+    "observations.jsonl": {
+      "sha256": "cd33d6ca74480f8b9c55c6d8619e96a48c4579c62de0ef9a386e99fc339adbeb",
+      "rows": 14,
+      "incoming_method_counts": {}
+    },
+    "pending-restart-observations.jsonl": {
+      "sha256": "e823df80b15c59912cce3349e26a4fb6cc60ab9cd00528b1731450c313297750",
+      "rows": 5,
+      "incoming_method_counts": {}
+    },
+    "process-observations.jsonl": {
+      "sha256": "87bcb28d15a41781706637089d168b545187dfa34ca96e59d41d6ed7467d1904",
+      "rows": 11,
+      "incoming_method_counts": {}
+    },
+    "security-audit.jsonl": {
+      "sha256": "c4d0c1b0b32f8429071fa78db6c14da93981407d7eaa83da6aa6b7e2d6e386f6",
+      "rows": 2,
+      "incoming_method_counts": {}
+    },
+    "server.jsonl": {
+      "sha256": "74f7247659d0ddfb46c346705cb4dba526fbea0a4dfaaa0d535dff1ea1db6860",
+      "rows": 14,
+      "incoming_method_counts": {}
+    }
+  },
+  "final_texts": {
+    "02-baseline": [
+      "ACK ORBIT-73-KIESEL",
+      "Failed: apply_patch could not read sample.py because the sandbox helper reported “Operation not permitted.” Stopped without further actions."
+    ],
+    "03-reconnect": [
+      "ORBIT-73-KIESEL",
+      "Created [approval-accepted.txt](/home/kf/codexpad-spike/workspace/approval-accepted.txt) containing `ACCEPTED-01`.",
+      "The file-change approval was denied. I did not retry or create `approval-declined.txt`."
+    ],
+    "05-server-restart": [
+      "ORBIT-73-KIESEL"
+    ]
+  },
+  "approval_original": {
+    "method": "item/fileChange/requestApproval",
+    "id": 2,
+    "params": {
+      "threadId": "01a0b2ea-0251-7801-9bed-cdf29f16334e",
+      "turnId": "01a0b2ea-4175-71c3-ae80-31f84224ab86",
+      "itemId": "exec-2182c44c-b69d-4f54-a54f-20472f6ac361",
+      "startedAtMs": 1789708095248,
+      "reason": null,
+      "grantRoot": null
+    }
+  },
+  "approval_replayed": {
+    "method": "item/fileChange/requestApproval",
+    "id": 2,
+    "params": {
+      "threadId": "01a0b2ea-0251-7801-9bed-cdf29f16334e",
+      "turnId": "01a0b2ea-4175-71c3-ae80-31f84224ab86",
+      "itemId": "exec-2182c44c-b69d-4f54-a54f-20472f6ac361",
+      "startedAtMs": 1789708095248,
+      "reason": null,
+      "grantRoot": null
+    }
+  },
+  "stream_before": "1\n",
+  "stream_after": "8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400",
+  "hydrated_text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400",
+  "offline_turns": [
+    {
+      "id": "01a0b2eb-a33c-71b3-a8df-683ae99a8dd0",
+      "items": [
+        {
+          "type": "userMessage",
+          "id": "01a0b2eb-a3bb-7573-abf3-d783e4dccc8f",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Reply only OFFLINE-COMPLETED-27. No tools.",
+              "text_elements": []
+            }
+          ]
+        },
+        {
+          "type": "agentMessage",
+          "id": "msg_0ce865eb140bf1f1016aacc79b116887d28072daf5f881c9c0",
+          "text": "OFFLINE-COMPLETED-27",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        }
+      ],
+      "itemsView": "full",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1789708182,
+      "completedAt": 1789708187,
+      "durationMs": 5150
+    },
+    {
+      "id": "01a0b2eb-2a38-7453-b3a2-c11eff3a6bad",
+      "items": [
+        {
+          "type": "userMessage",
+          "id": "01a0b2eb-345d-7070-94fe-ea382d4f7a86",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+              "text_elements": []
+            }
+          ]
+        },
+        {
+          "type": "agentMessage",
+          "id": "msg_0ce865eb140bf1f1016aacc77e0a4c87d2ad66d427b1a5f514",
+          "text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        }
+      ],
+      "itemsView": "full",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1789708151,
+      "completedAt": 1789708182,
+      "durationMs": 30934
+    }
+  ],
+  "restart_turns": [
+    {
+      "id": "01a0b2ec-b916-70a0-8c60-04febdbf1c12",
+      "items": [
+        {
+          "type": "userMessage",
+          "id": "01a0b2ec-c335-7730-99a0-6588bd87c872",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Use apply_patch to create approval-server-restart.txt containing RESTART-PENDING-01. Request normal file-change approval. Do not use shell commands. If denied, stop.",
+              "text_elements": []
+            }
+          ]
+        },
+        {
+          "type": "agentMessage",
+          "id": "msg_078e03f38d73c047016aacc7e22be087d2abed7c753cfca224",
+          "text": "I’ll use apply_patch to create the file with `RESTART-PENDING-01` and request normal file-change approval. If denied, I’ll stop.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        }
+      ],
+      "itemsView": "full",
+      "status": "interrupted",
+      "error": null,
+      "startedAt": 1789708253,
+      "completedAt": null,
+      "durationMs": null
+    }
+  ],
+  "files": {
+    "approval-accepted.txt": {
+      "exists": true,
+      "text": "ACCEPTED-01\n"
+    },
+    "approval-reconnected.txt": {
+      "exists": true,
+      "text": "RECONNECTED-01\n"
+    },
+    "approval-declined.txt": {
+      "exists": false,
+      "text": null
+    },
+    "approval-server-restart.txt": {
+      "exists": false,
+      "text": null
+    },
+    "direct-fs.txt": {
+      "exists": true,
+      "text": "DIRECT-FS-01\n"
+    }
+  },
+  "observations": {
+    "process-observations": [
+      {
+        "time": "2026-09-18T05:08:49.373237+00:00",
+        "test": "command_exec",
+        "tty": false,
+        "response": {
+          "id": "06-process-owner-2",
+          "result": {
+            "exitCode": 1,
+            "stdout": "",
+            "stderr": ""
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:08:49.392932+00:00",
+        "test": "command_exec",
+        "tty": true,
+        "response": {
+          "id": "06-process-owner-3",
+          "result": {
+            "exitCode": 1,
+            "stdout": "",
+            "stderr": ""
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:08:49.414217+00:00",
+        "test": "spawn",
+        "handle": "disconnect-False",
+        "pid": 2579557,
+        "tty": false,
+        "alive": true
+      },
+      {
+        "time": "2026-09-18T05:08:50.415740+00:00",
+        "test": "after_disconnect",
+        "handle": "disconnect-False",
+        "pid": 2579557,
+        "alive": false,
+        "server_alive": true
+      },
+      {
+        "time": "2026-09-18T05:08:50.443464+00:00",
+        "test": "reattach_attempt",
+        "response": {
+          "error": {
+            "code": -32600,
+            "message": "no active process for process handle \"disconnect-False\""
+          },
+          "id": "06-reconnect-False-2"
+        }
+      },
+      {
+        "time": "2026-09-18T05:08:50.466455+00:00",
+        "test": "spawn",
+        "handle": "disconnect-True",
+        "pid": 2579600,
+        "tty": true,
+        "alive": true
+      },
+      {
+        "time": "2026-09-18T05:08:51.467173+00:00",
+        "test": "after_disconnect",
+        "handle": "disconnect-True",
+        "pid": 2579600,
+        "alive": false,
+        "server_alive": true
+      },
+      {
+        "time": "2026-09-18T05:08:51.494733+00:00",
+        "test": "reattach_attempt",
+        "response": {
+          "error": {
+            "code": -32600,
+            "message": "no active process for process handle \"disconnect-True\""
+          },
+          "id": "06-reconnect-True-2"
+        }
+      },
+      {
+        "time": "2026-09-18T05:08:51.516265+00:00",
+        "test": "spawn",
+        "handle": "restart-pty",
+        "pid": 2579654,
+        "tty": true,
+        "alive": true
+      },
+      {
+        "time": "2026-09-18T05:08:52.532881+00:00",
+        "test": "after_server_stop",
+        "pid": 2579654,
+        "alive": false
+      },
+      {
+        "time": "2026-09-18T05:08:52.766354+00:00",
+        "test": "restart_reattach",
+        "response": {
+          "error": {
+            "code": -32600,
+            "message": "no active process for process handle \"restart-pty\""
+          },
+          "id": "06-after-server-restart-2"
+        }
+      }
+    ],
+    "live-observations": [
+      {
+        "time": "2026-09-18T05:09:18.593931+00:00",
+        "test": "active_resume",
+        "threadId": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+        "turnId": "01a0b2eb-2a38-7453-b3a2-c11eff3a6bad",
+        "read": {
+          "id": "07-active-reconnect-2",
+          "result": {
+            "thread": {
+              "id": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "environments": [
+                {
+                  "environmentId": "local",
+                  "cwd": "/home/kf/codexpad-spike/workspace",
+                  "runtimeWorkspaceRoots": [
+                    "/home/kf/codexpad-spike/workspace"
+                  ]
+                }
+              ],
+              "extra": null,
+              "sessionId": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "forkedFromId": null,
+              "parentThreadId": null,
+              "preview": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+              "ephemeral": false,
+              "section": null,
+              "sectionEnteredAt": null,
+              "projectId": null,
+              "historyMode": "paginated",
+              "modelProvider": "openai",
+              "model": "gpt-6-astra",
+              "reasoningEffort": "low",
+              "createdAt": 1789708151,
+              "updatedAt": 1789708153,
+              "recencyAt": 1789708151,
+              "status": {
+                "type": "active",
+                "activeFlags": []
+              },
+              "path": "/home/kf/codexpad-spike/codex-home/sessions/2026/09/18/rollout-2026-09-18T05-09-11-01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd.jsonl",
+              "cwd": "/home/kf/codexpad-spike/workspace",
+              "cliVersion": "0.154.0",
+              "originator": "codexpad_spike",
+              "source": "vscode",
+              "canAcceptDirectInput": true,
+              "threadSource": null,
+              "agentNickname": null,
+              "agentRole": null,
+              "gitInfo": null,
+              "name": null,
+              "daybreakEnabled": null,
+              "turns": []
+            }
+          }
+        },
+        "resume": {
+          "id": "07-active-reconnect-3",
+          "result": {
+            "thread": {
+              "id": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "environments": [
+                {
+                  "environmentId": "local",
+                  "cwd": "/home/kf/codexpad-spike/workspace",
+                  "runtimeWorkspaceRoots": [
+                    "/home/kf/codexpad-spike/workspace"
+                  ]
+                }
+              ],
+              "extra": null,
+              "sessionId": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "forkedFromId": null,
+              "parentThreadId": null,
+              "preview": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+              "ephemeral": false,
+              "section": null,
+              "sectionEnteredAt": null,
+              "projectId": null,
+              "historyMode": "paginated",
+              "modelProvider": "openai",
+              "model": "gpt-6-astra",
+              "reasoningEffort": "low",
+              "createdAt": 1789708151,
+              "updatedAt": 1789708153,
+              "recencyAt": 1789708151,
+              "status": {
+                "type": "active",
+                "activeFlags": []
+              },
+              "path": "/home/kf/codexpad-spike/codex-home/sessions/2026/09/18/rollout-2026-09-18T05-09-11-01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd.jsonl",
+              "cwd": "/home/kf/codexpad-spike/workspace",
+              "cliVersion": "0.154.0",
+              "originator": "codexpad_spike",
+              "source": "vscode",
+              "canAcceptDirectInput": true,
+              "threadSource": null,
+              "agentNickname": null,
+              "agentRole": null,
+              "gitInfo": null,
+              "name": null,
+              "daybreakEnabled": null,
+              "turns": []
+            },
+            "model": "gpt-6-astra",
+            "modelProvider": "openai",
+            "serviceTier": null,
+            "cwd": "/home/kf/codexpad-spike/workspace",
+            "runtimeWorkspaceRoots": [
+              "/home/kf/codexpad-spike/workspace"
+            ],
+            "instructionSources": [],
+            "approvalPolicy": "on-request",
+            "approvalsReviewer": "user",
+            "sandbox": {
+              "type": "workspaceWrite",
+              "writableRoots": [],
+              "networkAccess": false,
+              "excludeTmpdirEnvVar": true,
+              "excludeSlashTmp": true
+            },
+            "activePermissionProfile": null,
+            "reasoningEffort": "low",
+            "multiAgentMode": "explicitRequestOnly",
+            "initialTurnsPage": null,
+            "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+            "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":9,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:09:18.657185+00:00",
+        "test": "active_turn_page",
+        "response": {
+          "id": "07-active-reconnect-4",
+          "result": {
+            "data": [
+              {
+                "id": "01a0b2eb-2a38-7453-b3a2-c11eff3a6bad",
+                "items": [
+                  {
+                    "type": "userMessage",
+                    "id": "01a0b2eb-345d-7070-94fe-ea382d4f7a86",
+                    "clientId": null,
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+                        "text_elements": []
+                      }
+                    ]
+                  }
+                ],
+                "itemsView": "full",
+                "status": "inProgress",
+                "error": null,
+                "startedAt": 1789708151,
+                "completedAt": null,
+                "durationMs": null
+              }
+            ],
+            "nextCursor": null,
+            "backwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:09:42.323602+00:00",
+        "test": "active_completed",
+        "event": {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+            "turn": {
+              "id": "01a0b2eb-2a38-7453-b3a2-c11eff3a6bad",
+              "items": [
+                {
+                  "type": "agentMessage",
+                  "id": "msg_0ce865eb140bf1f1016aacc77e0a4c87d2ad66d427b1a5f514",
+                  "text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400",
+                  "phase": "final_answer",
+                  "memoryCitation": null,
+                  "delivery": null,
+                  "questions": null
+                }
+              ],
+              "itemsView": "summary",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1789708151,
+              "completedAt": 1789708182,
+              "durationMs": 30934
+            }
+          },
+          "emittedAtMs": 1789708182291
+        }
+      },
+      {
+        "time": "2026-09-18T05:09:57.395947+00:00",
+        "test": "offline_completed_resume",
+        "turnId": "01a0b2eb-a33c-71b3-a8df-683ae99a8dd0",
+        "response": {
+          "id": "07-offline-completed-2",
+          "result": {
+            "thread": {
+              "id": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "environments": [
+                {
+                  "environmentId": "local",
+                  "cwd": "/home/kf/codexpad-spike/workspace",
+                  "runtimeWorkspaceRoots": [
+                    "/home/kf/codexpad-spike/workspace"
+                  ]
+                }
+              ],
+              "extra": null,
+              "sessionId": "01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd",
+              "forkedFromId": null,
+              "parentThreadId": null,
+              "preview": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+              "ephemeral": false,
+              "section": null,
+              "sectionEnteredAt": null,
+              "projectId": null,
+              "historyMode": "paginated",
+              "modelProvider": "openai",
+              "model": "gpt-6-astra",
+              "reasoningEffort": "low",
+              "createdAt": 1789708151,
+              "updatedAt": 1789708187,
+              "recencyAt": 1789708182,
+              "status": {
+                "type": "idle"
+              },
+              "path": "/home/kf/codexpad-spike/codex-home/sessions/2026/09/18/rollout-2026-09-18T05-09-11-01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd.jsonl",
+              "cwd": "/home/kf/codexpad-spike/workspace",
+              "cliVersion": "0.154.0",
+              "originator": "codexpad_spike",
+              "source": "vscode",
+              "canAcceptDirectInput": true,
+              "threadSource": null,
+              "agentNickname": null,
+              "agentRole": null,
+              "gitInfo": null,
+              "name": null,
+              "daybreakEnabled": null,
+              "turns": []
+            },
+            "model": "gpt-6-astra",
+            "modelProvider": "openai",
+            "serviceTier": null,
+            "cwd": "/home/kf/codexpad-spike/workspace",
+            "runtimeWorkspaceRoots": [
+              "/home/kf/codexpad-spike/workspace"
+            ],
+            "instructionSources": [],
+            "approvalPolicy": "on-request",
+            "approvalsReviewer": "user",
+            "sandbox": {
+              "type": "workspaceWrite",
+              "writableRoots": [],
+              "networkAccess": false,
+              "excludeTmpdirEnvVar": true,
+              "excludeSlashTmp": true
+            },
+            "activePermissionProfile": null,
+            "reasoningEffort": "low",
+            "multiAgentMode": "explicitRequestOnly",
+            "initialTurnsPage": {
+              "data": [
+                {
+                  "id": "01a0b2eb-a33c-71b3-a8df-683ae99a8dd0",
+                  "items": [
+                    {
+                      "type": "userMessage",
+                      "id": "01a0b2eb-a3bb-7573-abf3-d783e4dccc8f",
+                      "clientId": null,
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Reply only OFFLINE-COMPLETED-27. No tools.",
+                          "text_elements": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "agentMessage",
+                      "id": "msg_0ce865eb140bf1f1016aacc79b116887d28072daf5f881c9c0",
+                      "text": "OFFLINE-COMPLETED-27",
+                      "phase": "final_answer",
+                      "memoryCitation": null,
+                      "delivery": null,
+                      "questions": null
+                    }
+                  ],
+                  "itemsView": "full",
+                  "status": "completed",
+                  "error": null,
+                  "startedAt": 1789708182,
+                  "completedAt": 1789708187,
+                  "durationMs": 5150
+                },
+                {
+                  "id": "01a0b2eb-2a38-7453-b3a2-c11eff3a6bad",
+                  "items": [
+                    {
+                      "type": "userMessage",
+                      "id": "01a0b2eb-345d-7070-94fe-ea382d4f7a86",
+                      "clientId": null,
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Without tools, output the integers from 1 through 400, one per line. This intentionally long response tests connection loss. Start immediately.",
+                          "text_elements": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "agentMessage",
+                      "id": "msg_0ce865eb140bf1f1016aacc77e0a4c87d2ad66d427b1a5f514",
+                      "text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400",
+                      "phase": "final_answer",
+                      "memoryCitation": null,
+                      "delivery": null,
+                      "questions": null
+                    }
+                  ],
+                  "itemsView": "full",
+                  "status": "completed",
+                  "error": null,
+                  "startedAt": 1789708151,
+                  "completedAt": 1789708182,
+                  "durationMs": 30934
+                }
+              ],
+              "nextCursor": null,
+              "backwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":16,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+            },
+            "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":16,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+            "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2eb-29f7-7e23-aa5c-7ef7440c64cd\",\"rolloutOrdinal\":20,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:09:59.398463+00:00",
+        "test": "replayed_methods",
+        "methods": [
+          "configWarning",
+          "remoteControl/status/changed",
+          "thread/goal/cleared"
+        ]
+      }
+    ],
+    "pending-restart-observations": [
+      {
+        "time": "2026-09-18T05:10:15.525630+00:00",
+        "test": "pending_before_restart",
+        "threadId": "01a0b2ec-0654-7681-b47c-34185cf4b7d5",
+        "turnId": "01a0b2ec-0739-79a0-a808-3ab8edd5b443",
+        "request": {
+          "method": "item/fileChange/requestApproval",
+          "id": 0,
+          "params": {
+            "threadId": "01a0b2ec-0654-7681-b47c-34185cf4b7d5",
+            "turnId": "01a0b2ec-0739-79a0-a808-3ab8edd5b443",
+            "itemId": "exec-d37f788c-3b5a-48e7-a968-d53df7e409f8",
+            "startedAtMs": 1789708215524,
+            "reason": null,
+            "grantRoot": null
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:11:01.393924+00:00",
+        "test": "pending_before_restart",
+        "threadId": "01a0b2ec-b864-7060-a127-2b5f55d1636e",
+        "turnId": "01a0b2ec-b916-70a0-8c60-04febdbf1c12",
+        "request": {
+          "method": "item/fileChange/requestApproval",
+          "id": 0,
+          "params": {
+            "threadId": "01a0b2ec-b864-7060-a127-2b5f55d1636e",
+            "turnId": "01a0b2ec-b916-70a0-8c60-04febdbf1c12",
+            "itemId": "exec-8c68d12b-e87e-4e69-865d-57b6a8c17582",
+            "startedAtMs": 1789708261392,
+            "reason": null,
+            "grantRoot": null
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:11:11.816721+00:00",
+        "test": "resume_after_restart",
+        "response": {
+          "id": "08-pending-after-restart-4",
+          "result": {
+            "thread": {
+              "id": "01a0b2ec-b864-7060-a127-2b5f55d1636e",
+              "environments": [
+                {
+                  "environmentId": "local",
+                  "cwd": "/home/kf/codexpad-spike/workspace",
+                  "runtimeWorkspaceRoots": [
+                    "/home/kf/codexpad-spike/workspace"
+                  ]
+                }
+              ],
+              "extra": null,
+              "sessionId": "01a0b2ec-b864-7060-a127-2b5f55d1636e",
+              "forkedFromId": null,
+              "parentThreadId": null,
+              "preview": "Use apply_patch to create approval-server-restart.txt containing RESTART-PENDING-01. Request normal file-change approval. Do not use shell commands. If denied, stop.",
+              "ephemeral": false,
+              "section": null,
+              "sectionEnteredAt": null,
+              "projectId": null,
+              "historyMode": "paginated",
+              "modelProvider": "openai",
+              "model": "gpt-6-astra",
+              "reasoningEffort": "low",
+              "createdAt": 1789708253,
+              "updatedAt": 1789708261,
+              "recencyAt": 1789708253,
+              "status": {
+                "type": "idle"
+              },
+              "path": "/home/kf/codexpad-spike/codex-home/sessions/2026/09/18/rollout-2026-09-18T05-10-53-01a0b2ec-b864-7060-a127-2b5f55d1636e.jsonl",
+              "cwd": "/home/kf/codexpad-spike/workspace",
+              "cliVersion": "0.154.0",
+              "originator": "codexpad_spike",
+              "source": "vscode",
+              "canAcceptDirectInput": true,
+              "threadSource": null,
+              "agentNickname": null,
+              "agentRole": null,
+              "gitInfo": null,
+              "name": null,
+              "daybreakEnabled": null,
+              "turns": []
+            },
+            "model": "gpt-6-astra",
+            "modelProvider": "openai",
+            "serviceTier": null,
+            "cwd": "/home/kf/codexpad-spike/workspace",
+            "runtimeWorkspaceRoots": [
+              "/home/kf/codexpad-spike/workspace"
+            ],
+            "instructionSources": [],
+            "approvalPolicy": "on-request",
+            "approvalsReviewer": "user",
+            "sandbox": {
+              "type": "workspaceWrite",
+              "writableRoots": [],
+              "networkAccess": false,
+              "excludeTmpdirEnvVar": true,
+              "excludeSlashTmp": true
+            },
+            "activePermissionProfile": null,
+            "reasoningEffort": "low",
+            "multiAgentMode": "explicitRequestOnly",
+            "initialTurnsPage": {
+              "data": [
+                {
+                  "id": "01a0b2ec-b916-70a0-8c60-04febdbf1c12",
+                  "items": [
+                    {
+                      "type": "userMessage",
+                      "id": "01a0b2ec-c335-7730-99a0-6588bd87c872",
+                      "clientId": null,
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Use apply_patch to create approval-server-restart.txt containing RESTART-PENDING-01. Request normal file-change approval. Do not use shell commands. If denied, stop.",
+                          "text_elements": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "agentMessage",
+                      "id": "msg_078e03f38d73c047016aacc7e22be087d2abed7c753cfca224",
+                      "text": "I’ll use apply_patch to create the file with `RESTART-PENDING-01` and request normal file-change approval. If denied, I’ll stop.",
+                      "phase": "commentary",
+                      "memoryCitation": null,
+                      "delivery": null,
+                      "questions": null
+                    }
+                  ],
+                  "itemsView": "full",
+                  "status": "interrupted",
+                  "error": null,
+                  "startedAt": 1789708253,
+                  "completedAt": null,
+                  "durationMs": null
+                }
+              ],
+              "nextCursor": null,
+              "backwardsCursor": "{\"requestedThreadId\":\"01a0b2ec-b864-7060-a127-2b5f55d1636e\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+            },
+            "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2ec-b864-7060-a127-2b5f55d1636e\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+            "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a0b2ec-b864-7060-a127-2b5f55d1636e\",\"rolloutOrdinal\":10,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+          }
+        }
+      },
+      {
+        "time": "2026-09-18T05:11:14.821043+00:00",
+        "test": "pending_after_restart",
+        "requests": [],
+        "file_exists": false
+      },
+      {
+        "time": "2026-09-18T05:11:17.746478+00:00",
+        "test": "followup_completed",
+        "event": {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a0b2ec-b864-7060-a127-2b5f55d1636e",
+            "turn": {
+              "id": "01a0b2ed-0c87-7b63-b450-585e13cf8c38",
+              "items": [
+                {
+                  "type": "agentMessage",
+                  "id": "msg_045fbaad5403e522016aacc7f4ed8087d2b18977d1611f263f",
+                  "text": "The earlier file change did not complete; the apply_patch tool call was aborted.",
+                  "phase": "final_answer",
+                  "memoryCitation": null,
+                  "delivery": null,
+                  "questions": null
+                }
+              ],
+              "itemsView": "summary",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1789708274,
+              "completedAt": 1789708277,
+              "durationMs": 2823
+            }
+          },
+          "emittedAtMs": 1789708277662
+        }
+      }
+    ],
+    "direct-git-observations": [
+      {
+        "time": "2026-09-18T05:11:32.890983+00:00",
+        "test": "git-status",
+        "result": {
+          "method": "process/exited",
+          "params": {
+            "processHandle": "git-status",
+            "exitCode": 0,
+            "stdout": "A  README.md\nA  sample.py\n?? approval-accepted.txt\n?? approval-reconnected.txt\n?? fs-watch.txt\n",
+            "stdoutCapReached": false,
+            "stderr": "",
+            "stderrCapReached": false
+          },
+          "emittedAtMs": 1789708292890
+        }
+      },
+      {
+        "time": "2026-09-18T05:11:32.898536+00:00",
+        "test": "git-diff",
+        "result": {
+          "method": "process/exited",
+          "params": {
+            "processHandle": "git-diff",
+            "exitCode": 1,
+            "stdout": "diff --git a/approval-accepted.txt b/approval-accepted.txt\nnew file mode 100644\nindex 0000000..eeca232\n--- /dev/null\n+++ b/approval-accepted.txt\n@@ -0,0 +1 @@\n+ACCEPTED-01\n",
+            "stdoutCapReached": false,
+            "stderr": "",
+            "stderrCapReached": false
+          },
+          "emittedAtMs": 1789708292897
+        }
+      }
+    ],
+    "lifecycle": [
+      {
+        "time": "2026-09-18T05:05:43.058791+00:00",
+        "event": "server_start",
+        "pid": 2574841
+      },
+      {
+        "time": "2026-09-18T05:06:25.974523+00:00",
+        "event": "server_stop",
+        "pid": 2574841,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:07:35.120216+00:00",
+        "event": "server_start",
+        "pid": 2577363
+      },
+      {
+        "time": "2026-09-18T05:08:22.336661+00:00",
+        "event": "server_stop",
+        "pid": 2577363,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:08:22.540286+00:00",
+        "event": "server_start",
+        "pid": 2578725
+      },
+      {
+        "time": "2026-09-18T05:08:29.132457+00:00",
+        "event": "server_stop",
+        "pid": 2578725,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:08:49.317550+00:00",
+        "event": "server_start",
+        "pid": 2579473
+      },
+      {
+        "time": "2026-09-18T05:08:51.532282+00:00",
+        "event": "server_stop",
+        "pid": 2579473,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:08:52.735421+00:00",
+        "event": "server_start",
+        "pid": 2579655
+      },
+      {
+        "time": "2026-09-18T05:08:52.774316+00:00",
+        "event": "server_stop",
+        "pid": 2579655,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:09:11.193021+00:00",
+        "event": "server_start",
+        "pid": 2580202
+      },
+      {
+        "time": "2026-09-18T05:09:59.463181+00:00",
+        "event": "server_stop",
+        "pid": 2580202,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:10:07.571665+00:00",
+        "event": "server_start",
+        "pid": 2581595
+      },
+      {
+        "time": "2026-09-18T05:10:25.545384+00:00",
+        "event": "server_stop",
+        "pid": 2581595,
+        "returncode": -9
+      },
+      {
+        "time": "2026-09-18T05:10:25.546402+00:00",
+        "event": "server_start",
+        "pid": 2582153
+      },
+      {
+        "time": "2026-09-18T05:10:25.547806+00:00",
+        "event": "server_stop",
+        "pid": 2582153,
+        "returncode": -15
+      },
+      {
+        "time": "2026-09-18T05:10:53.145239+00:00",
+        "event": "server_start",
+        "pid": 2582766
+      },
+      {
+        "time": "2026-09-18T05:11:11.406363+00:00",
+        "event": "server_stop",
+        "pid": 2582766,
+        "returncode": -9
+      },
+      {
+        "time": "2026-09-18T05:11:11.609390+00:00",
+        "event": "server_start",
+        "pid": 2583312
+      },
+      {
+        "time": "2026-09-18T05:11:17.820401+00:00",
+        "event": "server_stop",
+        "pid": 2583312,
+        "returncode": 0
+      },
+      {
+        "time": "2026-09-18T05:11:32.824735+00:00",
+        "event": "server_start",
+        "pid": 2583984
+      },
+      {
+        "time": "2026-09-18T05:11:32.916083+00:00",
+        "event": "server_stop",
+        "pid": 2583984,
+        "returncode": 0
+      }
+    ]
+  }
+}

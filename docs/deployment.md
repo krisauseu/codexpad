@@ -1,6 +1,6 @@
 # Persönlicher HTTPS-Betrieb auf pad.feichti.dev
 
-Stand: 25. September 2026. Lokale Implementierung und Vorlagen; **noch kein DNS-/VPS-Deployment**.
+Stand: 25. September 2026. Deployment auf dem persönlichen Test-VPS.
 
 Android → `https://pad.feichti.dev` → Caddy → `127.0.0.1:8765` → privater
 `codex app-server --stdio`-Kindprozess. Ein persönliches Token, keine Nutzerverwaltung.
@@ -31,8 +31,15 @@ Für einen bestehenden dedizierten persönlichen Dienstbenutzer können Pfade un
 bewusst angepasst werden. Nicht unter root betreiben.
 
 1. Python, Caddy 2 und die mit diesem API-Protokoll geprüfte Codex-CLI installieren.
-   Die CLI muss für den Dienst über `/usr/local/bin:/usr/bin:/bin` erreichbar sein.
-   Falls sie in einem anderen Pfad liegt, `Environment=PATH=...` anpassen.
+   Das Standalone-Release muss **vollständig** installiert werden. Das Hauptbinary
+   erwartet `codex-code-mode-host` als ausführbaren Nachbarn; ein einzelnes nach
+   `/usr/local/bin` kopiertes `codex` reicht nicht. Die Vorlage installiert das
+   vollständige Release unter `/usr/local/lib/codex/` und verlinkt beide Binaries
+   nach `/usr/local/bin`:
+
+   ```sh
+   sudo sh deploy/install-codex-standalone.sh /pfad/zum/standalone/release
+   ```
 2. Falls das Konto noch nicht besteht:
 
    ```sh
@@ -91,13 +98,25 @@ bewusst angepasst werden. Nicht unter root betreiben.
    `127.0.0.1:8765`. Bei fehlendem/ungültigem Token startet der Dienst nicht.
    Keine Firewallfreigabe für 8765 oder einen Codex-App-Server-Port erstellen.
 
-`CODEXPAD_WORKSPACE_ROOT` ist konfigurierbar. Bei einem Root außerhalb
-`/srv/codexpad` zusätzlich über `systemctl edit codexpad` dessen Pfad in
-`[Service] ReadWritePaths=/absoluter/pfad` ergänzen und Dateirechte prüfen. Die Unit
-schützt Systemverzeichnisse und Home-Verzeichnisse; `/var/lib/codexpad`, `/srv/codexpad`
-und temporärer Speicher bleiben beschreibbar. Diese Einschränkung ist keine
-Mandantenisolation. Die Agent-Sandbox muss auf dem konkreten VPS weiterhin funktionieren;
-sie wird bei Fehlern nicht pauschal abgeschaltet.
+`CODEXPAD_WORKSPACE_ROOT` ist konfigurierbar. Die CodexPad-API bietet nur direkte
+Unterordner dieses Roots als Workspaces an. Der Agent läuft auf diesem dedizierten
+Test-VPS absichtlich mit `sandbox_mode=danger-full-access` und
+`approval_policy=never`; bei `thread/start` und `turn/start` setzt die API dieselbe
+Policy auch für bestehende Threads. Damit sind Dateisystem und ausgehendes Netz
+innerhalb der Rechte des Dienstkontos offen. Die Unit lässt `PrivateTmp=true`
+bestehen, begrenzt aber weder System- noch Home-Schreibzugriffe und verhindert
+keine sudo-Rechte. Auf diesem persönlichen Testsystem wird dafür die mitgelieferte
+sudoers-Regel installiert:
+
+```sh
+sudo install -o root -g root -m 0440 deploy/codexpad-sudoers /etc/sudoers.d/codexpad
+sudo visudo -cf /etc/sudoers.d/codexpad
+sudo -u codexpad sudo -n id -u
+```
+
+Erwartung für den letzten Befehl: `0`. Das Dienstkonto erhält damit bewusst
+passwortlosen Root-Zugriff für administrative Agent-Aufgaben. Diese Einstellung
+gehört nur auf den entbehrlichen persönlichen Test-VPS.
 
 ## DNS und Caddy aktivieren
 

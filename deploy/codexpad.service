@@ -22,11 +22,7 @@ KillMode=control-group
 UMask=0077
 StateDirectory=codexpad
 StateDirectoryMode=0700
-NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/srv/codexpad
 
 [Install]
 WantedBy=multi-user.target

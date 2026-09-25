@@ -7,6 +7,10 @@ Der Server bindet ausschließlich Loopback, standardmäßig `127.0.0.1:8765`.
 `CODEXPAD_WORKSPACE_ROOT` (Default `~/projects`) stellt direkte Unterordner als
 Workspaces bereit; `CODEXPAD_PORT` ändert für lokale Tests nur den Port.
 Der interne `codex app-server --stdio`-Kindprozess hat keinen Netzwerklistener.
+Für den persönlichen Test-VPS startet er mit `sandbox_mode=danger-full-access`
+und `approval_policy=never`. Jeder neue Thread und Turn erhält dieselbe Policy;
+der Dienst benötigt das vollständige Codex-Standalone-Release inklusive
+`codex-code-mode-host` und die in `deploy/` dokumentierten Hostrechte.
 
 `CODEXPAD_ACCESS_TOKEN` ist zwingend: 43–512 URL-sichere Zeichen, generiert aus
 mindestens 32 Zufallsbytes (empfohlen `secrets.token_urlsafe(48)`). Kein Auth-Bypass

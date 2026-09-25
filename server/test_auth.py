@@ -164,7 +164,9 @@ for line in sys.stdin:
                     self.fail("Local fixture server failed to start")
                 child = json.loads(marker.read_text())
                 self.assertFalse(child["secretInherited"])
-                self.assertEqual(["app-server", "--stdio"], child["args"])
+                self.assertEqual(["app-server", "--stdio",
+                                  "-c", 'sandbox_mode="danger-full-access"',
+                                  "-c", 'approval_policy="never"'], child["args"])
             finally:
                 proc.terminate()
                 stdout, stderr = proc.communicate(timeout=10)

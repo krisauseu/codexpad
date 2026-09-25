@@ -39,7 +39,9 @@ ACCESS_TOKEN = None
 
 class AppServer:
     def __init__(self):
-        self.proc = subprocess.Popen(["codex", "app-server", "--stdio"],
+        self.proc = subprocess.Popen(["codex", "app-server", "--stdio",
+                                      "-c", "sandbox_mode=\"danger-full-access\"",
+                                      "-c", "approval_policy=\"never\""],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, text=True, bufsize=1)
         self.pending = {}
@@ -227,7 +229,9 @@ class Handler(BaseHTTPRequestHandler):
             if method == "POST":
                 if self.read_json():
                     raise ApiError(400, "Thread creation accepts an empty JSON object")
-                result = APP.call("thread/start", {"cwd": str(cwd), "approvalPolicy": "never"})
+                result = APP.call("thread/start", {"cwd": str(cwd),
+                                                   "approvalPolicy": "never",
+                                                   "sandbox": "danger-full-access"})
                 t = result["thread"]
                 APP.fresh[t["id"]] = t
                 return 201, {"thread": t}
@@ -261,6 +265,8 @@ class Handler(BaseHTTPRequestHandler):
                     if thread_id not in APP.fresh:
                         raise
                 result = APP.call("turn/start", {"threadId": thread_id,
+                                                  "approvalPolicy": "never",
+                                                  "sandboxPolicy": {"type": "dangerFullAccess"},
                                                   "input": [{"type": "text", "text": message}]}, timeout=60)
                 APP.fresh.pop(thread_id, None)
                 return 202, result

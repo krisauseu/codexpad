@@ -66,7 +66,10 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                     } else if (vm.showSettings) {
                         ConnectionSettingsScreen(vm)
                     } else if (session != null) {
-                        ThreadDetail(vm, session)
+                        // Only the timeline grows; controls leave it the remaining bounded height.
+                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ThreadDetail(vm, session)
+                        }
                     } else {
                         Text(vm.serverUrl, style = MaterialTheme.typography.labelSmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -197,7 +200,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             }
             items(turn.items, key = { "item:${turn.id}:${it.id}" }) { message ->
                     val live = state.timeline.live[turn.id]?.items?.any { it.id == message.id } == true
-                    MessageCard(message, live && !turn.terminal)
+                    MessageCard(message, live && !turn.terminal, turn.terminal)
             }
             turn.error?.let { error -> item(key = "error:${turn.id}") { ErrorText(error) } }
         }
@@ -223,16 +226,21 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             Text(if (state.interruptTurnId != null) "Wird gestoppt …" else "Stoppen")
         }
     }
-    Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
-        style = MaterialTheme.typography.labelMedium)
-    Text(state.usage.label, style = MaterialTheme.typography.labelSmall)
-    Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
-        style = MaterialTheme.typography.labelSmall)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
-            label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
-        AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
-            label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
+            style = MaterialTheme.typography.labelMedium)
+        Text(state.usage.label, style = MaterialTheme.typography.labelSmall)
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+        Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
+            style = MaterialTheme.typography.labelSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
+                label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
+            AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
+                label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+        }
     }
     if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
     vm.modelError?.let { ErrorText("Modellkatalog: $it") }
@@ -240,19 +248,25 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
     }
     val count = vm.draft.codePointCount(0, vm.draft.length)
-    OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.fillMaxWidth(),
-        label = { Text("Nachricht an Codex") }, minLines = 2, maxLines = 5,
-        enabled = !vm.sending, isError = count > 4096,
-        supportingText = { Text("$count / 4096 Zeichen") })
-    Button(onClick = vm::send, modifier = Modifier.align(Alignment.End).padding(bottom = 8.dp),
-        enabled = state.connected && !state.timeline.busy && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
-            vm.draft.isNotBlank() && count <= 4096) {
-        Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.weight(1f),
+            label = { Text("Nachricht an Codex") }, minLines = 2, maxLines = 5,
+            enabled = !vm.sending, isError = count > 4096,
+            supportingText = { Text("$count / 4096 Zeichen") })
+        Button(onClick = vm::send, modifier = Modifier.padding(bottom = 8.dp),
+            enabled = state.connected && !state.timeline.busy && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
+                vm.draft.isNotBlank() && count <= 4096) {
+            Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
+        }
     }
 }
 
 @Composable
-private fun MessageCard(message: Message, live: Boolean) {
+internal fun MessageCard(message: Message, live: Boolean, turnTerminal: Boolean = false) {
+    if (message.activity != null) {
+        ActivityCard(message, turnTerminal)
+        return
+    }
     val user = message.type == "userMessage"
     val agent = message.type == "agentMessage"
     Surface(color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,

@@ -13,7 +13,7 @@ android {
         applicationId = "dev.codexpad"
         minSdk = 26
         targetSdk = 37
-        testInstrumentationRunner = "dev.codexpad.KeystoreTestRunner"
+        testInstrumentationRunner = providers.gradleProperty("codexpad.testRunner").orElse("dev.codexpad.KeystoreTestRunner").get()
         versionCode = 1
         versionName = "0.1.0"
         buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")

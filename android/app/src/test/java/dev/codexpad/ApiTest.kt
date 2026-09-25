@@ -41,14 +41,54 @@ class ApiTest {
         }
     }
 
+    @Test fun catalogAndOptionalOverridesUseNarrowContract() = runBlocking {
+        MockWebServer().use { server ->
+            val api = CodexPadApi(server.url("/").toString(), token)
+            server.enqueue(MockResponse().setBody("""{"models":[{"id":"catalog","model":"selector","displayName":"Test","description":"Test model","isDefault":true,"supportedReasoningEfforts":[{"reasoningEffort":"custom","description":"Custom"}],"defaultReasoningEffort":"custom"}]}"""))
+            assertEquals("custom", api.models().single().efforts.single().effort)
+            assertEquals("/models", server.takeRequest().path)
+            for ((model, effort) in listOf(null to null, "selector" to null, "selector" to "custom")) {
+                server.enqueue(MockResponse().setResponseCode(202).setBody("""{"turn":{"id":"u","status":"inProgress","items":[]}}"""))
+                api.startTurn("t", "message", model, effort)
+                val body = JSONObject(server.takeRequest().body.readUtf8())
+                assertEquals(model != null, body.has("model"))
+                assertEquals(effort != null, body.has("effort"))
+                if (model != null) assertEquals(model, body.getString("model"))
+                if (effort != null) assertEquals(effort, body.getString("effort"))
+            }
+            server.enqueue(MockResponse().setBody("""{"thread":{"id":"t","model":"actual","reasoningEffort":"actual-effort"}}"""))
+            val readback = api.history("t")
+            assertEquals("actual", readback.model)
+            assertEquals("actual-effort", readback.reasoningEffort)
+        }
+    }
+
     @Test fun lostPostResponseNeverRetries() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            val result = runCatching { CodexPadApi(server.url("/").toString(), token).startTurn("t", "Once only") }
+            val result = runCatching { CodexPadApi(server.url("/").toString(), token).startTurn("t", "Once only", "selector", "custom") }
             assertTrue(result.isFailure)
             assertEquals("POST", server.takeRequest(2, TimeUnit.SECONDS)!!.method)
             assertNull(server.takeRequest(250, TimeUnit.MILLISECONDS))
             assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test fun interruptUsesExactEncodedIdsAndNeverRetriesLostResponse() = runBlocking {
+        MockWebServer().use { server ->
+            val api = CodexPadApi(server.url("/").toString(), token)
+            server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
+            api.interruptTurn("thread /1", "turn #2")
+            val request = server.takeRequest()
+            assertEquals("/threads/thread%20%2F1/turns/turn%20%232/interrupt", request.path)
+            assertEquals("POST", request.method)
+            assertEquals("{}", request.body.readUtf8())
+            assertEquals("Bearer $token", request.getHeader("Authorization"))
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            assertTrue(runCatching { api.interruptTurn("t", "turn") }.isFailure)
+            assertEquals("/threads/t/turns/turn/interrupt", server.takeRequest().path)
+            assertNull(server.takeRequest(250, TimeUnit.MILLISECONDS))
+            assertEquals(2, server.requestCount)
         }
     }
 

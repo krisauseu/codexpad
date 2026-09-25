@@ -76,12 +76,14 @@ Maßgeblich ist `server/codexpad_server.py`, nicht ein hypothetisches REST-Schem
 | Route | Verwendete Felder |
 | --- | --- |
 | `GET /health` | `status` (`ok` oder `unavailable`); keine Backend-Metadaten |
+| `GET /models` | vollständiger schmaler Modellkatalog mit RPC-Selektor und modellabhängigen Efforts |
 | `GET /workspaces` | `workspaces[]`: `id`, `name` |
 | `GET /workspaces/:id/threads` | `threads[]`: `id`, `preview`, `status.type` |
 | `POST /workspaces/:id/threads` | Request `{}`, Response `thread` |
 | `GET /threads/:id` | `thread`, insbesondere ID und Status |
 | `GET /threads/:id/history` | `thread.turns[]`: `id`, `status`, `error.message`, `items` |
-| `POST /threads/:id/turns` | Request `{"message":"..."}`, Response `turn` |
+| `POST /threads/:id/turns` | Request `{"message":"...","model":"optional","effort":"optional"}`, Response `turn` |
+| `POST /threads/:id/turns/:turnId/interrupt` | Request `{}`, HTTP 202 bestätigt nur RPC; Ende aus SSE/History |
 | `GET /threads/:id/events` | SSE `snapshot` mit `thread`; SSE `event` mit `method`, `params` |
 
 User-Items: `type=userMessage`, `content[]` mit `type=text`, `text`. Agent-Items: `type=agentMessage`, `text`. Sonstige Itemtypen erscheinen als kleine Typ-/Statusangabe, nicht als erfundene Textantwort. `preview` ist Vorschautext, kein behaupteter Titel; fehlt er, wird die ID angezeigt. IDs werden als URL-Pfadsegmente kodiert.
@@ -102,10 +104,22 @@ Beim Clientanschluss festgestellt: Der bestehende Router zerlegt den URL-Pfad, d
 
 POSTs haben weder automatische Transport-Retries noch Redirect-Following. Bei unbestätigtem Turnstart bleiben Entwurf und Warnung erhalten; erst nach bewusstem Prüfen des Verlaufs wird Senden wieder möglich. Auch Threadanlage wird bei verlorenem Ergebnis nicht automatisch wiederholt. Die App behauptet keine Exactly-once-Garantie.
 
+## Turn stoppen
+
+Ein nativer „Stoppen“-Button verwendet die konkrete laufende Turn-ID aus dem
+abgeglichenen Zustand. Ohne Live-Verbindung oder bei mehrdeutiger Turn-ID bleibt er
+gesperrt. Nach Betätigung erscheint „Wird gestoppt …“; der exakte Ziel-Turn wird vor
+HTTP im SavedStateHandle vorgemerkt. Doppeltippen und automatische Wiederholungen
+sind gesperrt, auch nach einer verlorenen Antwort oder Zustandswiederherstellung.
+Nur ein terminaler History-/SSE-Snapshot dieses Turns löst die Vormerkung auf:
+`interrupted`, `completed` und `failed` sind gleichermaßen gültige Endzustände.
+Ein HTTP-Fehler bleibt als unbestätigter Abbruch sichtbar, bis der Abgleich das Ende
+feststellt. Ein neuerer Turn wird niemals als Ersatz für den ursprünglichen gestoppt.
+
 ## Grenzen / Folgepunkte
 
-- Tablet-Lauf gegen lokale Vertragsfixtures erfolgreich; echter VPS-/Modell-Lauf steht noch aus. Die Fixture verwendet die tatsächlichen HTTP-Routen mit simuliertem Codex-Backend.
-- Nur Nutzung bei offener App, keine Push-/Hintergrundzusage. Kein Terminal, Dateimanager, Git-UI, Editor, Approval-UI oder Turn-Abbruch (die vorhandene API besitzt diese Endpunkte nicht).
+- Tablet-Lauf gegen lokale Vertragsfixtures und [echter Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
+- Nur Nutzung bei offener App, keine Push-/Hintergrundzusage. Kein Terminal, Dateimanager, Git-UI, Editor, Approval-UI (die vorhandene API besitzt diese Endpunkte nicht).
 - Textdarstellung ohne Markdown-Engine, Attachments nur als Typmarker, Tool-Items nur Typ/Status.
 - Vollständige Legacy-History ohne Pagination; für sehr lange Unterhaltungen noch nicht optimiert.
 - Vorschau plus ID statt eigenem Threadtitel. Titel/Renaming ist ein UX-Folgepunkt, kein neues Serverfeld.
@@ -154,3 +168,28 @@ adb shell am instrument -w -e phase read dev.codexpad.test/dev.codexpad.Keystore
 Beide Phasen müssen `PASS` melden. Die zweite Phase prüft Entschlüsselung nach
 Prozessneustart sowie URL-Manipulation und entfernt anschließend die Testdaten.
 [Prüfnachweis des HTTPS-Slices](../docs/verification-https.md).
+
+## Modellwahl, Reasoning und Kontext
+
+Die Composer-Chips öffnen native Auswahldialoge. Modellname und Beschreibung sowie
+Efforts stammen aus `GET /models`; „Katalogdefault“ ist keine Aussage über den Thread.
+Die Zeile „Konfiguriert“ verwendet ausschließlich nullable `Thread.model` und
+`Thread.reasoningEffort` aus dem Serverabgleich. Fehlende Werte bleiben unbekannt.
+Eine Auswahl ist lokal für die nächste Nachricht vorgemerkt und verwerfbar. Ein
+Modellwechsel erhält einen kompatiblen Effort oder wählt Katalogdefault/ersten
+unterstützten Wert. Ohne Auswahl enthält der POST keine Overrides. Auswahl und
+bestätigter Thread-Zustand bleiben getrennt; ein erfolgreicher POST leert die
+verbrauchte Vormerkung, aktualisiert aber niemals selbst die Konfigurationsanzeige.
+Danach liest der bestehende Abgleich den tatsächlichen Zustand. Bei Antwortverlust
+bleibt der bestehende unbestätigte Sendevorgang ohne automatische Wiederholung.
+Vormerkungen leben im ViewModel (Rotation), nicht dauerhaft über Prozessverlust.
+
+Kontext stammt ausschließlich aus `thread/tokenUsage/updated`: verwendet ist
+`last.totalTokens`, niemals der kumulierte `total`-Wert. Nur positive bekannte
+`modelContextWindow`-Werte erlauben die Restschätzung `max(0, Fenster - verwendet)`.
+Fehlende Werte heißen „unbekannt“. Pause, Reconnect und Overflow markieren bekannte
+Usage als „veraltet“; weder History noch SSE-Snapshot machen sie aktuell. Erst ein
+neues Usage-Event einschließlich Resume-Replay tut das. Reroutes werden pro Turn
+als Laufzeitumleitung angezeigt und verändern Modell/Effort des Threads nicht.
+
+[Prüfnachweis und Grenzen dieses Slices](../docs/verification-model-context.md).

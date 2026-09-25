@@ -41,6 +41,11 @@ class FixtureBackend:
 
     def call(self, method, params, timeout=60):
         with self.lock:
+            if method == "model/list":
+                return {"data": [{"id": "fixture-catalog", "model": "fixture-model", "displayName": "Fixture",
+                                  "description": "Contract model", "isDefault": True,
+                                  "supportedReasoningEfforts": [{"reasoningEffort": "custom", "description": "Custom"}],
+                                  "defaultReasoningEffort": "custom"}], "nextCursor": None}
             if method == "thread/list":
                 return {"data": copy.deepcopy([t for t in self.threads.values() if t["cwd"] == params["cwd"]]), "nextCursor": None}
             if method == "thread/start":
@@ -50,11 +55,25 @@ class FixtureBackend:
                 return {"thread": copy.deepcopy(thread)}
             thread = self.threads[params["threadId"]]
             if method in ("thread/read", "thread/resume"):
+                if method == "thread/resume" and thread["turns"]:
+                    self.emit(thread["id"], "thread/tokenUsage/updated", {
+                        "turnId": thread["turns"][-1]["id"], "tokenUsage": {
+                            "last": {"totalTokens": 30}, "total": {"totalTokens": 900}, "modelContextWindow": 100}})
                 result = copy.deepcopy(thread)
                 if method == "thread/read" and not params.get("includeTurns"):
                     result["turns"] = []
                 return {"thread": result}
+            if method == "turn/interrupt":
+                turn = next((t for t in thread["turns"] if t["id"] == params["turnId"]), None)
+                if not turn or turn["status"] != "inProgress":
+                    raise server.ApiError(502, "Turn is not active")
+                turn["status"] = "interrupted"
+                thread["status"] = {"type": "idle"}
+                self.emit(thread["id"], "turn/completed", {"turn": turn})
+                return {}
             if method == "turn/start":
+                if "model" in params: thread["model"] = params["model"]
+                if "effort" in params: thread["reasoningEffort"] = params["effort"]
                 text = params["input"][0]["text"]
                 turn = {"id": f"turn-{len(thread['turns']) + 1}", "status": "inProgress", "items": [
                     {"id": "legacy-user", "type": "userMessage", "content": [{"type": "text", "text": text}]}]}
@@ -68,12 +87,19 @@ class FixtureBackend:
     def complete(self, thread, turn):
         tid = thread["id"]
         time.sleep(.2)
-        self.emit(tid, "turn/started", {"turn": turn})
+        with self.lock:
+            if turn["status"] != "inProgress":
+                return
+            self.emit(tid, "turn/started", {"turn": turn})
         self.emit(tid, "item/started", {"turnId": turn["id"], "item": turn["items"][0]})
         for part in ("Hallo vom ", "lokalen Vertragstest. ", "CODEXPAD-CLIENT-OK"):
+            if turn["status"] != "inProgress":
+                return
             self.emit(tid, "item/agentMessage/delta", {"turnId": turn["id"], "itemId": "live-agent", "delta": part})
             time.sleep(1)
         with self.lock:
+            if turn["status"] != "inProgress":
+                return
             turn["items"].append({"id": "legacy-agent", "type": "agentMessage", "text": "Hallo vom lokalen Vertragstest. CODEXPAD-CLIENT-OK"})
             turn["status"] = "completed"
             thread["status"] = {"type": "idle"}

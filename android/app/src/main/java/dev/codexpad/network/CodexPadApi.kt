@@ -20,13 +20,15 @@ import kotlin.coroutines.resumeWithException
 class ApiException(val status: Int, message: String) : IOException(message)
 
 interface CodexPadService {
+    suspend fun models(): List<CatalogModel>
     suspend fun health(): String
     suspend fun workspaces(): List<Workspace>
     suspend fun threads(workspaceId: String): List<CodexThread>
     suspend fun createThread(workspaceId: String): CodexThread
     suspend fun thread(threadId: String): CodexThread
     suspend fun history(threadId: String): CodexThread
-    suspend fun startTurn(threadId: String, message: String): Turn
+    suspend fun startTurn(threadId: String, message: String, model: String? = null, effort: String? = null): Turn
+    suspend fun interruptTurn(threadId: String, turnId: String)
     fun events(threadId: String): Flow<SseFrame>
 }
 
@@ -54,6 +56,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         JSONObject(raw)
     } }
 
+    override suspend fun models() = json(request("models")).getJSONArray("models").objects().map(CatalogModel::parse)
     override suspend fun health() = json(request("health")).getString("status")
     override suspend fun workspaces() = json(request("workspaces")).getJSONArray("workspaces").objects()
         .map { Workspace(it.getString("id"), it.getString("name")) }
@@ -63,8 +66,14 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         json(request("workspaces", workspaceId, "threads", body = JSONObject())))
     override suspend fun thread(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId)))
     override suspend fun history(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId, "history")))
-    override suspend fun startTurn(threadId: String, message: String) = Wire.turn(json(
-        request("threads", threadId, "turns", body = JSONObject().put("message", message))).getJSONObject("turn"))
+    override suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?) = Wire.turn(json(
+        request("threads", threadId, "turns", body = JSONObject().put("message", message).apply {
+            model?.let { put("model", it) }; effort?.let { put("effort", it) }
+        })).getJSONObject("turn"))
+
+    override suspend fun interruptTurn(threadId: String, turnId: String) {
+        json(request("threads", threadId, "turns", turnId, "interrupt", body = JSONObject()))
+    }
 
     override fun events(threadId: String): Flow<SseFrame> = callbackFlow {
         val call = streaming.newCall(request("threads", threadId, "events").newBuilder()

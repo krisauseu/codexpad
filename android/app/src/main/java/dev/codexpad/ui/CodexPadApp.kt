@@ -123,6 +123,32 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
 private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
     val state by session.state.collectAsStateWithLifecycle()
     val turns = state.timeline.turns
+    LaunchedEffect(session) { vm.loadModels() }
+    var modelPicker by remember(session) { mutableStateOf(false) }
+    var effortPicker by remember(session) { mutableStateOf(false) }
+    val configured = state.timeline.thread
+    val selectedModel = vm.models.firstOrNull { it.model == (vm.nextModel ?: configured?.model) }
+    if (modelPicker) AlertDialog(onDismissRequest = { modelPicker = false },
+        title = { Text("Modell für nächste Nachricht") },
+        text = { LazyColumn {
+            items(vm.models, key = { it.id }) { model ->
+                TextButton(onClick = { vm.selectModel(model); modelPicker = false }) {
+                    Column(Modifier.fillMaxWidth()) {
+                        Text(model.name + if (model.isDefault) " · Katalogdefault" else "")
+                        Text(model.description, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        } }, confirmButton = { TextButton(onClick = { modelPicker = false }) { Text("Schließen") } })
+    if (effortPicker) AlertDialog(onDismissRequest = { effortPicker = false },
+        title = { Text("Reasoning für nächste Nachricht") },
+        text = { LazyColumn {
+            items(selectedModel?.efforts.orEmpty(), key = { it.effort }) { option ->
+                TextButton(onClick = { vm.selectEffort(option.effort); effortPicker = false }) {
+                    Column(Modifier.fillMaxWidth()) { Text(option.effort); Text(option.description) }
+                }
+            }
+        } }, confirmButton = { TextButton(onClick = { effortPicker = false }) { Text("Schließen") } })
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     Text(vm.threadId.orEmpty(), style = MaterialTheme.typography.labelSmall)
@@ -147,6 +173,8 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         turns.forEach { turn ->
             item(key = "turn:${turn.id}") {
                 Text("Turn ${turn.id.take(8)} · ${turn.status}", style = MaterialTheme.typography.labelMedium)
+                state.reroutes[turn.id]?.let { Text("Laufzeitumleitung: ${it.from} → ${it.to}",
+                    style = MaterialTheme.typography.labelSmall) }
             }
             items(turn.items, key = { "item:${turn.id}:${it.id}" }) { message ->
                     val live = state.timeline.live[turn.id]?.items?.any { it.id == message.id } == true
@@ -168,13 +196,37 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             OutlinedButton(onClick = vm::reviewedUnknown, enabled = state.connected && !state.timeline.busy) { Text("Verlauf geprüft") }
         }
     }
+    state.interruptError?.let { ErrorText(it) }
+    if (state.timeline.busy || state.interruptTurnId != null) {
+        val target = state.stoppableTurnId
+        OutlinedButton(onClick = { target?.let { vm.stop(session, it) } }, enabled = target != null,
+            modifier = Modifier.align(Alignment.End)) {
+            Text(if (state.interruptTurnId != null) "Wird gestoppt …" else "Stoppen")
+        }
+    }
+    Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
+        style = MaterialTheme.typography.labelMedium)
+    Text(state.usage.label, style = MaterialTheme.typography.labelSmall)
+    Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
+        style = MaterialTheme.typography.labelSmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
+            label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
+        AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
+            label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+    }
+    if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
+    vm.modelError?.let { ErrorText("Modellkatalog: $it") }
+    if (vm.modelError != null || vm.models.isEmpty()) TextButton(onClick = vm::loadModels, enabled = !vm.modelsLoading) {
+        Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
+    }
     val count = vm.draft.codePointCount(0, vm.draft.length)
     OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.fillMaxWidth(),
         label = { Text("Nachricht an Codex") }, minLines = 2, maxLines = 5,
         enabled = !vm.sending, isError = count > 4096,
         supportingText = { Text("$count / 4096 Zeichen") })
     Button(onClick = vm::send, modifier = Modifier.align(Alignment.End).padding(bottom = 8.dp),
-        enabled = state.connected && !state.timeline.busy && !vm.sending && !vm.uncertain &&
+        enabled = state.connected && !state.timeline.busy && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
             vm.draft.isNotBlank() && count <= 4096) {
         Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
     }

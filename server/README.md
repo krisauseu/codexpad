@@ -37,6 +37,21 @@ PYTHON
 Android-Debug-Einstellungen: `http://127.0.0.1:8765` und dasselbe Token.
 Für ADB-Reverse bleibt `adb reverse tcp:8765 tcp:8765` möglich.
 
+## Turn-Abbruch
+
+`POST /threads/{threadId}/turns/{turnId}/interrupt` akzeptiert ausschließlich `{}`.
+Nach Authentifizierung prüft ein frisches `thread/read` mit Turns den konfigurierten
+Workspace und den konkret angeforderten laufenden Turn. Kein Fresh-Cache-Fallback,
+kein Resume und keine Ersetzung durch einen neueren Turn. Fehlende/beendete Turns
+liefern 409; Rennen nach dem Read entscheidet Codex anhand derselben Turn-ID.
+Die einzige Mutation ist das reguläre `turn/interrupt {threadId, turnId}` ohne
+Experimental-Opt-in. HTTP 202 mit `{}` bestätigt nur die RPC-Antwort; der endgültige
+Zustand kommt über bestehende SSE-Notifications und History. Der bestehende
+60-Sekunden-RPC-Timeout kann einen unklaren Ausgang ergeben und löst keinen Retry aus.
+
+Der [Gerätetest gegen Codex 0.156.1](../docs/verification-interrupt.md) belegt
+Interrupt, History/Reconnect, Fortsetzung und Abweisung einer alten Turn-ID.
+
 ## Tests
 
 ```sh
@@ -52,3 +67,21 @@ anlegt. Er liest dasselbe Token aus `CODEXPAD_ACCESS_TOKEN` und verwendet es auc
 für SSE. Erst nach eingerichtetem Server bewusst ausführen; kein Token in Argumente
 oder HTTP-URLs schreiben. Historische Ergebnisse stehen im
 [ursprünglichen Spike](../docs/experiments/2026-09-server-vertical-slice/README.md).
+
+## Modellkatalog und Turn-Overrides
+
+`GET /models` ist authentifiziert und sammelt alle sichtbaren `model/list`-Seiten.
+Antwort: `models[]` mit `id`, `model` (RPC-Selektor), `displayName`, `description`,
+`isDefault`, `supportedReasoningEfforts`, `defaultReasoningEffort`. Wiederholte
+Cursor brechen mit 502 ab. Kein generischer RPC-Passthrough.
+
+`POST /threads/{id}/turns` akzeptiert neben `message` optionale `model`/`effort`.
+Explizites null, leere Strings, Nicht-Strings, Werte über 256 Zeichen und fremde
+Felder werden mit 400 abgewiesen. Bei Overrides wird der aktuelle Katalog gelesen:
+Modell muss dessen `model`-Selektor entsprechen; Effort muss in genau dessen
+`supportedReasoningEfforts` vorkommen. Ohne Modell-Override dient das gelesene
+Thread-Modell zur Effort-Prüfung; unbekannter Zustand wird nicht durch den
+Katalogdefault ersetzt. Ohne Overrides wird kein Katalog benötigt.
+Overrides gehen ausschließlich an `turn/start`, nie an Resume oder Settings-RPCs.
+Der App Server entscheidet weiterhin über tatsächliche Verfügbarkeit und Anwendung;
+Thread-/History-Readback ist autoritativ. Usage bleibt beim vorhandenen SSE-Vertrag.

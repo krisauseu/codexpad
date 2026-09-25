@@ -1,6 +1,8 @@
 package dev.codexpad.data
 
 import dev.codexpad.model.Wire
+import dev.codexpad.model.ContextUsage
+import dev.codexpad.model.ModelReroute
 import dev.codexpad.network.CodexPadService
 import dev.codexpad.network.connectionError
 import java.io.IOException
@@ -14,14 +16,28 @@ import org.json.JSONObject
 
 data class ThreadState(
     val timeline: Timeline = Timeline(),
+    val usage: ContextUsage = ContextUsage(),
+    val reroutes: Map<String, ModelReroute> = emptyMap(),
     val connection: String = "Lade Thread …",
     val connected: Boolean = false,
     val error: String? = null,
-)
+    val interruptTurnId: String? = null,
+    val interruptError: String? = null,
+) {
+    // Ambiguous/missing IDs and offline snapshots never select a target implicitly.
+    val stoppableTurnId: String? get() = if (connected && interruptTurnId == null)
+        timeline.turns.filter { !it.terminal }.singleOrNull()
+            ?.takeIf { it.status == "inProgress" && it.id.isNotBlank() }?.id else null
+}
 
 /** One foreground session. Cancelling run() closes SSE; no mutation is retried here. */
-class ThreadSession(private val api: CodexPadService, private val threadId: String) {
-    private val mutable = MutableStateFlow(ThreadState())
+class ThreadSession(
+    private val api: CodexPadService,
+    private val threadId: String,
+    pendingInterrupt: String? = null,
+    private val saveInterrupt: (String?) -> Unit = {},
+) {
+    private val mutable = MutableStateFlow(ThreadState(interruptTurnId = pendingInterrupt))
     val state = mutable.asStateFlow()
     private val refreshLock = Mutex()
 
@@ -30,6 +46,30 @@ class ThreadSession(private val api: CodexPadService, private val threadId: Stri
         val history = api.history(threadId)
         require(snapshot.id == threadId && history.id == threadId) { "Falsche Thread-ID in Serverantwort" }
         mutable.update { it.copy(timeline = it.timeline.reconcile(history, resetLive), error = null) }
+        reconcileInterrupt()
+    }
+
+    private fun reconcileInterrupt() {
+        val pending = state.value.interruptTurnId ?: return
+        if (state.value.timeline.thread?.turns?.any { it.id == pending && it.terminal } == true) {
+            mutable.update { it.copy(interruptTurnId = null, interruptError = null) }
+            saveInterrupt(null)
+        }
+    }
+
+    suspend fun interrupt(expectedTurnId: String) {
+        val before = state.value
+        if (before.stoppableTurnId != expectedTurnId) return
+        if (!mutable.compareAndSet(before, before.copy(interruptTurnId = expectedTurnId, interruptError = null))) return
+        // Persist the exact target before I/O. Neither HTTP success nor failure clears it.
+        saveInterrupt(expectedTurnId)
+        try { api.interruptTurn(threadId, expectedTurnId) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) {
+            mutable.update { if (it.interruptTurnId == expectedTurnId)
+                it.copy(interruptError = "Abbruch unbestätigt: ${connectionError(error)}") else it }
+        }
+        refreshVisible()
     }
 
     fun acknowledge(turn: dev.codexpad.model.Turn) {
@@ -42,13 +82,13 @@ class ThreadSession(private val api: CodexPadService, private val threadId: Stri
         catch (error: Exception) { mutable.update { it.copy(error = connectionError(error)) } }
     }
 
-    fun paused() { mutable.update { it.copy(connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
+    fun paused() { mutable.update { it.copy(usage = it.usage.outdated(), connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
 
     suspend fun run(): Nothing {
         var backoff = 1_000L
         while (currentCoroutineContext().isActive) {
             try {
-                mutable.update { it.copy(connected = false, connection = "Snapshot und Verlauf laden …") }
+                mutable.update { it.copy(usage = it.usage.outdated(), connected = false, connection = "Snapshot und Verlauf laden …") }
                 refresh(resetLive = true)
                 coroutineScope {
                     val poll = launch {
@@ -68,6 +108,7 @@ class ThreadSession(private val api: CodexPadService, private val threadId: Stri
                                     require(snapshot.id == threadId)
                                     mutable.update { it.copy(timeline = it.timeline.reconcile(snapshot, true),
                                         connected = true, connection = "Live verbunden", error = null) }
+                                    reconcileInterrupt()
                                     hasSnapshot = true
                                     backoff = 1_000
                                 }
@@ -77,7 +118,15 @@ class ThreadSession(private val api: CodexPadService, private val threadId: Stri
                                     val params = json.optJSONObject("params") ?: JSONObject()
                                     if (params.optString("threadId") == threadId) {
                                         if (method == "codexpad/overflow") throw IOException("Live-Puffer übergelaufen")
-                                        mutable.update { it.copy(timeline = it.timeline.event(method, params)) }
+                                        mutable.update { state -> state.copy(
+                                            timeline = state.timeline.event(method, params),
+                                            usage = if (method == "thread/tokenUsage/updated")
+                                                ContextUsage.parse(params.optJSONObject("tokenUsage")) else state.usage,
+                                            reroutes = if (method == "model/rerouted" && params.optString("turnId").isNotBlank())
+                                                state.reroutes + (params.getString("turnId") to ModelReroute(
+                                                    params.getString("turnId"), params.optString("fromModel"), params.optString("toModel")))
+                                                else state.reroutes,
+                                        ) }
                                         if (method in setOf("turn/completed", "thread/status/changed", "error")) refresh()
                                         if (method == "error") mutable.update {
                                             it.copy(error = params.optJSONObject("error")?.optString("message") ?: "Agentfehler")
@@ -93,7 +142,7 @@ class ThreadSession(private val api: CodexPadService, private val threadId: Stri
                 paused()
                 throw cancelled
             } catch (error: Exception) {
-                mutable.update { it.copy(connected = false,
+                mutable.update { it.copy(usage = it.usage.outdated(), connected = false,
                     connection = "Verbindung verloren · erneuter Abgleich in ${backoff / 1000} s",
                     error = connectionError(error)) }
                 delay(backoff)

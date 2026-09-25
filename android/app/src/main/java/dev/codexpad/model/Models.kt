@@ -13,6 +13,8 @@ data class CodexThread(
     val preview: String = "",
     val status: String = "unknown",
     val turns: List<Turn> = emptyList(),
+    val model: String? = null,
+    val reasoningEffort: String? = null,
 )
 
 fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
@@ -24,6 +26,8 @@ object Wire {
         id = json.getString("id"),
         preview = json.optionalText("preview").orEmpty(),
         status = json.optJSONObject("status")?.optString("type", "unknown") ?: "unknown",
+        model = json.optionalText("model"),
+        reasoningEffort = json.optionalText("reasoningEffort"),
         turns = json.optJSONArray("turns")?.objects()?.map(::turn).orEmpty(),
     )
     fun turn(json: JSONObject) = Turn(

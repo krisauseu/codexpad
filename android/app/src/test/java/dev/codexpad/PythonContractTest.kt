@@ -16,6 +16,7 @@ class PythonContractTest {
         assumeTrue("Start tools/contract_server.py and set CODEXPAD_CONTRACT_URL", base != null)
         val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"))
         assertEquals("ok", api.health())
+        assertEquals("fixture-model", api.models().single().model)
         val workspace = api.workspaces().single()
         assertEquals("demo space-ä", workspace.id)
         assertTrue(api.threads(workspace.id).isNotEmpty())
@@ -45,7 +46,29 @@ class PythonContractTest {
         assertEquals("Hallo vom lokalen Vertragstest. CODEXPAD-CLIENT-OK",
             complete.turns.single().items.last().text)
         assertTrue(api.threads(workspace.id).any { it.id == thread.id })
-        val next = api.startTurn(thread.id, "Fortsetzen")
+        val next = api.startTurn(thread.id, "Fortsetzen", "fixture-model", "custom")
         assertNotEquals(turn.id, next.id)
+        assertEquals("fixture-model", api.history(thread.id).model)
+        assertEquals("custom", api.history(thread.id).reasoningEffort)
+        val usageReplay = withTimeout(5000) { api.events(thread.id).first {
+            it.event == "event" && JSONObject(it.data).optString("method") == "thread/tokenUsage/updated"
+        } }
+        assertEquals(30, JSONObject(usageReplay.data).getJSONObject("params").getJSONObject("tokenUsage")
+            .getJSONObject("last").getInt("totalTokens"))
+        val interruptReady = CompletableDeferred<Unit>()
+        val ended = async {
+            api.events(thread.id).onEach { if (it.event == "snapshot") interruptReady.complete(Unit) }
+                .first { it.event == "event" && JSONObject(it.data).optString("method") == "turn/completed" }
+        }
+        withTimeout(5000) { interruptReady.await() }
+        api.interruptTurn(thread.id, next.id)
+        val eventTurn = JSONObject(withTimeout(5000) { ended.await() }.data)
+            .getJSONObject("params").getJSONObject("turn")
+        assertEquals(next.id, eventTurn.getString("id"))
+        assertEquals("interrupted", eventTurn.getString("status"))
+        assertEquals("interrupted", api.history(thread.id).turns.last().status)
+        val afterReconnect = withTimeout(5000) { api.events(thread.id).first() }
+        assertEquals("interrupted", JSONObject(afterReconnect.data).getJSONObject("thread")
+            .getJSONArray("turns").getJSONObject(1).getString("status"))
     }
 }

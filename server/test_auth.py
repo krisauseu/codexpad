@@ -25,7 +25,7 @@ server = fixture.server
 class AuthenticationTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
-        server.ROOT = Path(self.directory.name)
+        server.ROOT = Path(self.directory.name).resolve()
         (server.ROOT / "demo space-ä").mkdir()
         server.APP = fixture.FixtureBackend(server.ROOT)
         self.token = secrets.token_urlsafe(48)
@@ -50,10 +50,10 @@ class AuthenticationTest(unittest.TestCase):
             connection.close()
 
     def test_every_route_rejects_before_backend_or_body(self):
-        routes = [("GET", "/workspaces"), ("GET", "/workspaces/demo/threads"),
+        routes = [("GET", "/models"), ("GET", "/workspaces"), ("GET", "/workspaces/demo/threads"),
                   ("POST", "/workspaces/demo/threads"), ("GET", "/threads/t"),
                   ("GET", "/threads/t/history"), ("POST", "/threads/t/turns"),
-                  ("GET", "/threads/t/events"), ("GET", "/unknown"), ("DELETE", "/threads/t")]
+                  ("POST", "/threads/t/turns/u/interrupt"), ("GET", "/threads/t/events"), ("GET", "/unknown"), ("DELETE", "/threads/t")]
         with patch.object(server.APP, "call", side_effect=AssertionError("backend reached")):
             for method, path in routes:
                 for auth in (None, "Bearer " + secrets.token_urlsafe(48), "Basic " + self.token):
@@ -63,6 +63,98 @@ class AuthenticationTest(unittest.TestCase):
                         self.assertEqual('Bearer realm="CodexPad"', headers["WWW-Authenticate"])
                         self.assertEqual("close", headers["Connection"])
                         self.assertNotIn(self.token.encode(), body)
+
+    def test_models_pagination_projection_and_turn_validation(self):
+        headers = {"Authorization": "Bearer " + self.token}
+        original = server.APP.call
+        current = server.APP.threads["fixture-thread-1"]
+        current["model"] = "a"
+        entries = [{"id": "catalog-" + name, "model": name, "displayName": name,
+                    "description": "test", "isDefault": name == "b",
+                    "supportedReasoningEfforts": [{"reasoningEffort": e, "description": e} for e in efforts],
+                    "defaultReasoningEffort": efforts[0], "hidden": False, "unneeded": "secret"}
+                   for name, efforts in [("a", ["low", "custom"]), ("b", ["high"])]]
+        def rpc(method, params, **kwargs):
+            if method == "model/list":
+                return {"data": [entries[1 if params["cursor"] else 0]],
+                        "nextCursor": None if params["cursor"] else "page2"}
+            if method == "turn/start":
+                current.update({k: params[k] for k in ("model",) if k in params})
+                if "effort" in params: current["reasoningEffort"] = params["effort"]
+                return {"turn": {"id": "u", "status": "completed", "items": []}}
+            return original(method, params, **kwargs)
+        with patch.object(server.APP, "call", side_effect=rpc) as calls:
+            status, _, body = self.request("/models", headers=headers)
+            self.assertEqual(200, status)
+            catalog = json.loads(body)["models"]
+            self.assertEqual(["a", "b"], [m["model"] for m in catalog])
+            self.assertNotIn("unneeded", catalog[0])
+            self.assertEqual([None, "page2"], [c.args[1]["cursor"] for c in calls.call_args_list])
+            for overrides in ({}, {"model": "a"}, {"model": "a", "effort": "custom"}, {"effort": "low"}):
+                calls.reset_mock()
+                self.assertEqual(202, self.request("/threads/fixture-thread-1/turns", "POST", headers,
+                    json.dumps({"message": "test", **overrides}))[0])
+                start = next(c.args[1] for c in calls.call_args_list if c.args[0] == "turn/start")
+                self.assertEqual(overrides, {k: start[k] for k in ("model", "effort") if k in start})
+                resume = next(c.args[1] for c in calls.call_args_list if c.args[0] == "thread/resume")
+                self.assertEqual({"threadId": current["id"]}, resume)
+            state = json.loads(self.request("/threads/fixture-thread-1/history", headers=headers)[2])["thread"]
+            self.assertEqual(("a", "low"), (state["model"], state["reasoningEffort"]))
+            for overrides in ({"model": "missing"}, {"model": "b", "effort": "low"},
+                              {"effort": None}, {"model": 1}, {"model": ""}, {"config": {}}):
+                calls.reset_mock()
+                self.assertEqual(400, self.request("/threads/fixture-thread-1/turns", "POST", headers,
+                    json.dumps({"message": "test", **overrides}))[0])
+                self.assertFalse(any(c.args[0] in ("turn/start", "thread/resume") for c in calls.call_args_list))
+        with patch.object(server.APP, "call", return_value={"data": [], "nextCursor": "loop"}):
+            self.assertEqual(502, self.request("/models", headers=headers)[0])
+
+    def test_interrupt_exact_target_and_boundaries(self):
+        current = server.APP.threads["fixture-thread-1"]
+        current["turns"] = [{"id": "old", "status": "completed"},
+                            {"id": "running", "status": "inProgress"}]
+        headers = {"Authorization": "Bearer " + self.token}
+        path = "/threads/fixture-thread-1/turns/"
+        original = server.APP.call
+        for target, body, expected in [("running", "{}", 202), ("old", "{}", 409),
+                                       ("missing", "{}", 409), ("running", '{"turnId":"other"}', 400)]:
+            with self.subTest(target=target, body=body):
+                def rpc(method, params, **kwargs):
+                    return {} if method == "turn/interrupt" else original(method, params, **kwargs)
+                with patch.object(server.APP, "call", side_effect=rpc) as calls:
+                    self.assertEqual(expected, self.request(path + target + "/interrupt", "POST", headers, body)[0])
+                    interrupts = [c for c in calls.call_args_list if c.args[0] == "turn/interrupt"]
+                    self.assertEqual(1 if expected == 202 else 0, len(interrupts))
+                    if interrupts:
+                        self.assertEqual({"threadId": current["id"], "turnId": "running"}, interrupts[0].args[1])
+                    self.assertTrue(all(c.args[0] in ("thread/read", "turn/interrupt") for c in calls.call_args_list))
+        current["cwd"] = "/outside/workspaces"
+        with patch.object(server.APP, "call", wraps=original) as calls:
+            self.assertEqual(404, self.request(path + "running/interrupt", "POST", headers, "{}")[0])
+            self.assertEqual(["thread/read"], [c.args[0] for c in calls.call_args_list])
+
+    def test_interrupt_does_not_fallback_or_retarget_on_read_failure_or_race(self):
+        current = server.APP.threads["fixture-thread-1"]
+        current["turns"] = [{"id": "running", "status": "inProgress"}]
+        server.APP.fresh[current["id"]] = current
+        headers = {"Authorization": "Bearer " + self.token}
+        path = "/threads/fixture-thread-1/turns/running/interrupt"
+        with patch.object(server.APP, "call", side_effect=server.ApiError(504, "timeout")) as calls:
+            self.assertEqual(504, self.request(path, "POST", headers, "{}")[0])
+            self.assertEqual(1, calls.call_count)
+        original = server.APP.call
+        def race(method, params, **kwargs):
+            if method == "turn/interrupt":
+                self.assertEqual("running", params["turnId"])
+                current["turns"][0]["status"] = "completed"
+                current["turns"].append({"id": "newer", "status": "inProgress"})
+                raise server.ApiError(502, "turn is no longer active")
+            return original(method, params, **kwargs)
+        with patch.object(server.APP, "call", side_effect=race) as calls:
+            self.assertEqual(502, self.request(path, "POST", headers, "{}")[0])
+            self.assertEqual(409, self.request(path, "POST", headers, "{}")[0])
+            self.assertEqual(1, sum(c.args[0] == "turn/interrupt" for c in calls.call_args_list))
+        self.assertEqual("inProgress", current["turns"][-1]["status"])
 
     def test_health_is_minimal_and_backend_failure_is_503(self):
         self.assertEqual((200, b'{"status": "ok"}'), self.request("/health")[::2])

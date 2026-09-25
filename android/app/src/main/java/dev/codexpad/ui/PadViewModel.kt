@@ -105,6 +105,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
                 saved["serverUrl"] = target.serverUrl
                 config = target
                 api = CodexPadApi(target.serverUrl, target.token)
+                models = emptyList(); nextModel = null; nextEffort = null
                 serverUrl = target.serverUrl
                 hasToken = true
                 session = null
@@ -128,7 +129,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         private set
     var threadId by mutableStateOf(saved.get<String>("threadId"))
         private set
-    var session by mutableStateOf(threadId?.let { ThreadSession(api, it) })
+    var session by mutableStateOf(threadId?.let { newSession(it) })
         private set
     var workspaces by mutableStateOf(emptyList<Workspace>())
         private set
@@ -168,7 +169,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
                     createUncertain = false
                 }
                 saved["serverUrl"] = config.serverUrl
-                session = threadId?.let { ThreadSession(api, it) }
+                session = threadId?.let { newSession(it) }
                 connectionStatus = if (hasToken) "Noch nicht getestet" else "Zugriffstoken fehlt"
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) {
@@ -181,6 +182,21 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     }
 
 
+    private fun newSession(id: String): ThreadSession {
+        val server = config.serverUrl
+        var previous: String? = saved["interrupt:$id"]
+        return ThreadSession(api, id, previous) { pending ->
+            if (config.serverUrl == server && saved.get<String>("interrupt:$id") == previous)
+                saved["interrupt:$id"] = pending
+            previous = pending
+        }
+    }
+
+    fun stop(target: ThreadSession, turnId: String) {
+        if (session !== target) return
+        viewModelScope.launch { target.interrupt(turnId) }
+    }
+
     fun selectWorkspace(selected: Workspace) {
         workspace = selected
         saved["workspaceId"] = selected.id
@@ -191,10 +207,11 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     }
 
     fun openThread(id: String) {
+        nextModel = null; nextEffort = null
         listing?.cancel()
         threadId = id
         saved["threadId"] = id
-        session = ThreadSession(api, id)
+        session = newSession(id)
         draft = saved.get<String>("draft:$id").orEmpty()
         uncertain = saved["uncertain:$id"] ?: false
         sendError = null
@@ -268,11 +285,57 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         saved["create:${workspace?.id}"] = false
     }
 
+    var models by mutableStateOf(emptyList<CatalogModel>())
+        private set
+    var modelError by mutableStateOf<String?>(null)
+        private set
+    var modelsLoading by mutableStateOf(false)
+        private set
+    var nextModel by mutableStateOf<String?>(null)
+        private set
+    var nextEffort by mutableStateOf<String?>(null)
+        private set
+
+    fun loadModels() {
+        if (modelsLoading) return
+        val source = api
+        modelsLoading = true
+        viewModelScope.launch {
+            try {
+                val catalog = source.models()
+                if (api === source) { models = catalog; modelError = null }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { if (api === source) modelError = connectionError(failure) }
+            finally { modelsLoading = false }
+        }
+    }
+
+    fun selectModel(model: CatalogModel) {
+        if (sending || uncertain) return
+        nextEffort = model.compatibleEffort(nextEffort ?: session?.state?.value?.timeline?.thread?.reasoningEffort)
+        nextModel = model.model
+    }
+
+    fun selectEffort(effort: String) {
+        if (sending || uncertain) return
+        val selected = nextModel ?: session?.state?.value?.timeline?.thread?.model
+        val model = models.firstOrNull { it.model == selected } ?: return
+        if (model.efforts.none { it.effort == effort }) return
+        // Bind effort to the chosen model even if a later server read changes the thread.
+        nextModel = model.model
+        nextEffort = effort
+    }
+
+    fun clearSelection() { if (!sending && !uncertain) { nextModel = null; nextEffort = null } }
+
     fun send() {
         val id = threadId ?: return
         val target = session ?: return
         val message = draft.trim()
-        if (sending || uncertain || !target.state.value.connected || target.state.value.timeline.busy ||
+        val model = nextModel
+        val effort = nextEffort
+        if (sending || uncertain || target.state.value.interruptTurnId != null ||
+            !target.state.value.connected || target.state.value.timeline.busy ||
             message.isEmpty() || message.codePointCount(0, message.length) > 4096) return
         // Persist before sending. Process death must not turn an unacknowledged POST into a retry.
         saved["uncertain:$id"] = true
@@ -280,11 +343,11 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         sendError = null
         viewModelScope.launch {
             try {
-                val turn = api.startTurn(id, message)
+                val turn = api.startTurn(id, message, model, effort)
                 target.acknowledge(turn)
                 saved["uncertain:$id"] = false
                 saved["draft:$id"] = ""
-                if (threadId == id) { draft = ""; uncertain = false }
+                if (threadId == id) { draft = ""; uncertain = false; nextModel = null; nextEffort = null }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 if (threadId == id) {

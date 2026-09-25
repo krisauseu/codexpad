@@ -153,16 +153,53 @@ def workspace(workspace_id):
     return path
 
 
-def thread(thread_id, include_turns=False):
+def thread(thread_id, include_turns=False, allow_fresh=True):
     try:
         result = APP.call("thread/read", {"threadId": thread_id, "includeTurns": include_turns})["thread"]
     except ApiError:
-        result = APP.fresh.get(thread_id)
+        result = APP.fresh.get(thread_id) if allow_fresh else None
         if not result:
             raise
     if result.get("cwd") not in {str(p) for p in workspaces().values()}:
         raise ApiError(404, "Thread is not in a configured workspace")
     return result
+
+
+def models():
+    """Complete visible catalog, deliberately projected to the mobile contract."""
+    catalog, cursor, seen = [], None, set()
+    while True:
+        page = APP.call("model/list", {"cursor": cursor, "limit": 100, "includeHidden": False})
+        for model in page["data"]:
+            catalog.append({key: model.get(key) for key in (
+                "id", "model", "displayName", "description", "isDefault",
+                "supportedReasoningEfforts", "defaultReasoningEffort")})
+        cursor = page.get("nextCursor")
+        if not cursor:
+            return catalog
+        if cursor in seen:
+            raise ApiError(502, "Model catalog pagination did not advance")
+        seen.add(cursor)
+
+
+def turn_overrides(payload, current):
+    if payload.keys() - {"message", "model", "effort"}:
+        raise ApiError(400, "Unsupported turn field")
+    overrides = {key: payload[key] for key in ("model", "effort") if key in payload}
+    for value in overrides.values():
+        if not isinstance(value, str) or not value.strip() or len(value) > 256:
+            raise ApiError(400, "model and effort must be nonempty strings of at most 256 characters")
+    if not overrides:
+        return overrides
+    # `model` is the RPC selector; catalog `id` is retained as catalog identity.
+    selected = overrides.get("model", current.get("model"))
+    entry = next((m for m in models() if m["model"] == selected), None)
+    if entry is None:
+        raise ApiError(400, "Unknown model; select a model from the current catalog")
+    if "effort" in overrides and overrides["effort"] not in {
+            option["reasoningEffort"] for option in entry["supportedReasoningEfforts"]}:
+        raise ApiError(400, "Effort is not supported by the selected model")
+    return overrides
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -222,6 +259,8 @@ class Handler(BaseHTTPRequestHandler):
         parts = [unquote(x) for x in urlsplit(self.path).path.split("/") if x]
         if method == "GET" and parts == ["health"]:
             return (200, {"status": "ok"}) if APP is not None and APP.proc.poll() is None else (503, {"status": "unavailable"})
+        if method == "GET" and parts == ["models"]:
+            return 200, {"models": models()}
         if method == "GET" and parts == ["workspaces"]:
             return 200, {"workspaces": [{"id": key, "name": key} for key in sorted(workspaces())]}
         if len(parts) == 3 and parts[0] == "workspaces" and parts[2] == "threads":
@@ -252,12 +291,25 @@ class Handler(BaseHTTPRequestHandler):
                 return 200, {"thread": thread(thread_id)}
             if len(parts) == 3 and parts[2] == "history" and method == "GET":
                 return 200, {"thread": thread(thread_id, True)}
+            if len(parts) == 5 and parts[2] == "turns" and parts[4] == "interrupt" and method == "POST":
+                current = thread(thread_id, True, allow_fresh=False)
+                if self.read_json():
+                    raise ApiError(400, "Turn interrupt accepts an empty JSON object")
+                target = next((t for t in current.get("turns", []) if t.get("id") == parts[3]), None)
+                if not target or target.get("status") != "inProgress":
+                    raise ApiError(409, "Requested turn is not running; reconcile history")
+                # Never substitute a newer active turn. Codex checks this exact ID again,
+                # covering completion/start races after the authoritative read above.
+                APP.call("turn/interrupt", {"threadId": current["id"], "turnId": target["id"]})
+                # This acknowledges the RPC only; SSE/history determines the final state.
+                return 202, {}
             if len(parts) == 3 and parts[2] == "turns" and method == "POST":
                 current = thread(thread_id)
                 payload = self.read_json()
                 message = payload.get("message")
                 if not isinstance(message, str) or not message.strip() or len(message) > 4096:
                     raise ApiError(400, "message must contain 1 to 4096 characters")
+                overrides = turn_overrides(payload, current)
                 # Resume is idempotent for a persisted thread; a new turn is not.
                 try:
                     APP.call("thread/resume", {"threadId": thread_id}, timeout=60)
@@ -267,7 +319,7 @@ class Handler(BaseHTTPRequestHandler):
                 result = APP.call("turn/start", {"threadId": thread_id,
                                                   "approvalPolicy": "never",
                                                   "sandboxPolicy": {"type": "dangerFullAccess"},
-                                                  "input": [{"type": "text", "text": message}]}, timeout=60)
+                                                  "input": [{"type": "text", "text": message}], **overrides}, timeout=60)
                 APP.fresh.pop(thread_id, None)
                 return 202, result
             if len(parts) == 3 and parts[2] == "events" and method == "GET":

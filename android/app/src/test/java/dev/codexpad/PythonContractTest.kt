@@ -46,6 +46,18 @@ class PythonContractTest {
         assertEquals("Hallo vom lokalen Vertragstest. CODEXPAD-CLIENT-OK",
             complete.turns.single().items.last().text)
         assertTrue(api.threads(workspace.id).any { it.id == thread.id })
+        val compactReady = CompletableDeferred<Unit>()
+        val compactDone = async {
+            api.events(thread.id).onEach { if (it.event == "snapshot") compactReady.complete(Unit) }
+                .first { it.event == "event" && JSONObject(it.data).optString("method") == "turn/completed" }
+        }
+        withTimeout(5000) { compactReady.await() }
+        api.compactThread(thread.id)
+        withTimeout(5000) { compactDone.await() }
+        val compactHistory = api.history(thread.id)
+        assertEquals(complete.turns.single(), compactHistory.turns.first())
+        assertTrue(compactHistory.turns.last().items.single().isCompaction)
+        assertEquals("completed", compactHistory.turns.last().status)
         val next = api.startTurn(thread.id, "Fortsetzen", "fixture-model", "custom")
         assertNotEquals(turn.id, next.id)
         assertEquals("fixture-model", api.history(thread.id).model)
@@ -69,6 +81,6 @@ class PythonContractTest {
         assertEquals("interrupted", api.history(thread.id).turns.last().status)
         val afterReconnect = withTimeout(5000) { api.events(thread.id).first() }
         assertEquals("interrupted", JSONObject(afterReconnect.data).getJSONObject("thread")
-            .getJSONArray("turns").getJSONObject(1).getString("status"))
+            .getJSONArray("turns").getJSONObject(2).getString("status"))
     }
 }

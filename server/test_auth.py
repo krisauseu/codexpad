@@ -52,7 +52,7 @@ class AuthenticationTest(unittest.TestCase):
     def test_every_route_rejects_before_backend_or_body(self):
         routes = [("GET", "/models"), ("GET", "/workspaces"), ("GET", "/workspaces/demo/threads"),
                   ("POST", "/workspaces/demo/threads"), ("GET", "/threads/t"),
-                  ("GET", "/threads/t/history"), ("POST", "/threads/t/turns"),
+                  ("GET", "/threads/t/history"), ("POST", "/threads/t/turns"), ("POST", "/threads/t/compact"),
                   ("POST", "/threads/t/turns/u/interrupt"), ("GET", "/threads/t/events"), ("GET", "/unknown"), ("DELETE", "/threads/t")]
         with patch.object(server.APP, "call", side_effect=AssertionError("backend reached")):
             for method, path in routes:
@@ -108,6 +108,40 @@ class AuthenticationTest(unittest.TestCase):
                 self.assertFalse(any(c.args[0] in ("turn/start", "thread/resume") for c in calls.call_args_list))
         with patch.object(server.APP, "call", return_value={"data": [], "nextCursor": "loop"}):
             self.assertEqual(502, self.request("/models", headers=headers)[0])
+
+    def test_compact_narrow_rpc_boundaries_and_no_retry(self):
+        current = server.APP.threads["fixture-thread-1"]
+        headers = {"Authorization": "Bearer " + self.token}
+        path = "/threads/fixture-thread-1/compact"
+        original = server.APP.call
+        def rpc(method, params, **kwargs):
+            return {} if method == "thread/compact/start" else original(method, params, **kwargs)
+        with patch.object(server.APP, "call", side_effect=rpc) as calls:
+            status, _, body = self.request(path, "POST", headers, "{}")
+            self.assertEqual((202, {}), (status, json.loads(body)))
+            self.assertEqual(["thread/read", "thread/compact/start"], [c.args[0] for c in calls.call_args_list])
+            self.assertEqual({"threadId": current["id"]}, calls.call_args_list[-1].args[1])
+            for payload in ('{"method":"anything"}', '{"experimentalApi":true}', '[]'):
+                calls.reset_mock()
+                self.assertEqual(400, self.request(path, "POST", headers, payload)[0])
+                self.assertFalse(any(c.args[0] == "thread/compact/start" for c in calls.call_args_list))
+            current["turns"] = [{"id": "busy", "status": "inProgress"}]
+            self.assertEqual(409, self.request(path, "POST", headers, "{}")[0])
+            current["turns"] = []
+            current["cwd"] = "/outside"
+            self.assertEqual(404, self.request(path, "POST", headers, "{}")[0])
+        current["cwd"] = str(server.ROOT / "demo space-ä")
+        server.APP.fresh[current["id"]] = current
+        with patch.object(server.APP, "call", side_effect=server.ApiError(504, "timeout")) as calls:
+            self.assertEqual(504, self.request(path, "POST", headers, "{}")[0])
+            self.assertEqual(1, calls.call_count)  # No fresh fallback for a mutation.
+        def lost(method, params, **kwargs):
+            if method == "thread/compact/start":
+                raise server.ApiError(504, "unknown outcome")
+            return original(method, params, **kwargs)
+        with patch.object(server.APP, "call", side_effect=lost) as calls:
+            self.assertEqual(504, self.request(path, "POST", headers, "{}")[0])
+            self.assertEqual(1, sum(c.args[0] == "thread/compact/start" for c in calls.call_args_list))
 
     def test_interrupt_exact_target_and_boundaries(self):
         current = server.APP.threads["fixture-thread-1"]

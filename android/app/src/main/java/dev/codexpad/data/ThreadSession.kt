@@ -17,15 +17,18 @@ import org.json.JSONObject
 data class ThreadState(
     val timeline: Timeline = Timeline(),
     val usage: ContextUsage = ContextUsage(),
+    val usageTurnId: String? = null,
     val reroutes: Map<String, ModelReroute> = emptyMap(),
     val connection: String = "Lade Thread …",
     val connected: Boolean = false,
     val error: String? = null,
     val interruptTurnId: String? = null,
     val interruptError: String? = null,
+    val compaction: Compaction? = null,
 ) {
+    val canCompact get() = connected && !timeline.busy && interruptTurnId == null && compaction?.pending != true
     // Ambiguous/missing IDs and offline snapshots never select a target implicitly.
-    val stoppableTurnId: String? get() = if (connected && interruptTurnId == null)
+    val stoppableTurnId: String? get() = if (connected && interruptTurnId == null && compaction?.pending != true)
         timeline.turns.filter { !it.terminal }.singleOrNull()
             ?.takeIf { it.status == "inProgress" && it.id.isNotBlank() }?.id else null
 }
@@ -36,8 +39,10 @@ class ThreadSession(
     private val threadId: String,
     pendingInterrupt: String? = null,
     private val saveInterrupt: (String?) -> Unit = {},
+    pendingCompaction: Compaction? = null,
+    private val saveCompaction: (Compaction?) -> Unit = {},
 ) {
-    private val mutable = MutableStateFlow(ThreadState(interruptTurnId = pendingInterrupt))
+    private val mutable = MutableStateFlow(ThreadState(interruptTurnId = pendingInterrupt, compaction = pendingCompaction))
     val state = mutable.asStateFlow()
     private val refreshLock = Mutex()
 
@@ -47,6 +52,37 @@ class ThreadSession(
         require(snapshot.id == threadId && history.id == threadId) { "Falsche Thread-ID in Serverantwort" }
         mutable.update { it.copy(timeline = it.timeline.reconcile(history, resetLive), error = null) }
         reconcileInterrupt()
+        reconcileCompaction(history)
+    }
+
+    private fun reconcileCompaction(history: dev.codexpad.model.CodexThread) {
+        mutable.update { state ->
+            val compact = state.compaction ?: return@update state
+            val next = compact.reconcile(history)
+            state.copy(compaction = next, usage = if (compact.pending && next.phase == "completed" &&
+                next.turnId != null && state.usageTurnId == next.turnId) state.usage.copy(stale = false) else state.usage)
+        }
+        saveCompaction(state.value.compaction)
+    }
+
+    suspend fun compact() {
+        val before = state.value
+        if (!before.canCompact) return
+        val pending = Compaction(before.timeline.turns.map { it.id }.toSet(), phase = "requested")
+        if (!mutable.compareAndSet(before, before.copy(compaction = pending, usage = before.usage.outdated(), usageTurnId = null))) return
+        // Save before I/O; neither HTTP success nor a missing item permits another POST.
+        saveCompaction(pending)
+        try { api.compactThread(threadId) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { unknownCompaction(pending) }
+        refreshVisible()
+    }
+
+    private fun unknownCompaction(expected: Compaction? = null) {
+        mutable.update { state -> state.copy(compaction = state.compaction?.let {
+            if (it.pending && (expected == null || it.baseline == expected.baseline)) it.copy(phase = "unknown") else it
+        }) }
+        saveCompaction(state.value.compaction)
     }
 
     private fun reconcileInterrupt() {
@@ -79,21 +115,21 @@ class ThreadSession(
     suspend fun refreshVisible() {
         try { refresh() }
         catch (cancelled: CancellationException) { throw cancelled }
-        catch (error: Exception) { mutable.update { it.copy(error = connectionError(error)) } }
+        catch (error: Exception) { unknownCompaction(); mutable.update { it.copy(error = connectionError(error)) } }
     }
 
-    fun paused() { mutable.update { it.copy(usage = it.usage.outdated(), connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
+    fun paused() { unknownCompaction(); mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
 
     suspend fun run(): Nothing {
         var backoff = 1_000L
         while (currentCoroutineContext().isActive) {
             try {
-                mutable.update { it.copy(usage = it.usage.outdated(), connected = false, connection = "Snapshot und Verlauf laden …") }
+                mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false, connection = "Snapshot und Verlauf laden …") }
                 refresh(resetLive = true)
                 coroutineScope {
                     val poll = launch {
                         while (isActive) {
-                            delay(if (state.value.timeline.busy) 5_000 else 15_000)
+                            delay(if (state.value.timeline.busy || state.value.compaction?.pending == true) 5_000 else 15_000)
                             // Also heals missed completion events and a dead backend with live HTTP heartbeats.
                             refresh()
                         }
@@ -109,6 +145,7 @@ class ThreadSession(
                                     mutable.update { it.copy(timeline = it.timeline.reconcile(snapshot, true),
                                         connected = true, connection = "Live verbunden", error = null) }
                                     reconcileInterrupt()
+                                    reconcileCompaction(snapshot)
                                     hasSnapshot = true
                                     backoff = 1_000
                                 }
@@ -121,12 +158,32 @@ class ThreadSession(
                                         mutable.update { state -> state.copy(
                                             timeline = state.timeline.event(method, params),
                                             usage = if (method == "thread/tokenUsage/updated")
-                                                ContextUsage.parse(params.optJSONObject("tokenUsage")) else state.usage,
+                                                ContextUsage.parse(params.optJSONObject("tokenUsage")).let { usage ->
+                                                    val compact = state.compaction
+                                                    // Resume can replay pre-compact usage. A later turn's measurement
+                                                    // (including the compact turn) is required; never invent savings.
+                                                    if (compact != null && (compact.pending || params.optString("turnId").isBlank() ||
+                                                        params.optString("turnId") in compact.baseline)) usage.outdated() else usage
+                                                } else state.usage,
+                                            usageTurnId = if (method == "thread/tokenUsage/updated")
+                                                params.optString("turnId").takeIf { it.isNotBlank() } else state.usageTurnId,
                                             reroutes = if (method == "model/rerouted" && params.optString("turnId").isNotBlank())
                                                 state.reroutes + (params.getString("turnId") to ModelReroute(
                                                     params.getString("turnId"), params.optString("fromModel"), params.optString("toModel")))
                                                 else state.reroutes,
                                         ) }
+                                        if (method in setOf("item/started", "item/completed") &&
+                                            params.optJSONObject("item")?.optString("type") == "contextCompaction") {
+                                            mutable.update { state ->
+                                                val compact = state.compaction
+                                                val id = params.optString("turnId")
+                                                if (compact?.pending == true && id.isNotBlank() && id !in compact.baseline)
+                                                    state.copy(compaction = compact.copy(turnId = id, phase = "running"), usage = state.usage.outdated())
+                                                else state
+                                            }
+                                            saveCompaction(state.value.compaction)
+                                            refresh()
+                                        }
                                         if (method in setOf("turn/completed", "thread/status/changed", "error")) refresh()
                                         if (method == "error") mutable.update {
                                             it.copy(error = params.optJSONObject("error")?.optString("message") ?: "Agentfehler")
@@ -142,7 +199,8 @@ class ThreadSession(
                 paused()
                 throw cancelled
             } catch (error: Exception) {
-                mutable.update { it.copy(usage = it.usage.outdated(), connected = false,
+                unknownCompaction()
+                mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false,
                     connection = "Verbindung verloren · erneuter Abgleich in ${backoff / 1000} s",
                     error = connectionError(error)) }
                 delay(backoff)

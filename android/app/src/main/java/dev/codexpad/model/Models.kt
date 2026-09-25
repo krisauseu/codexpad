@@ -4,7 +4,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class Workspace(val id: String, val name: String)
-data class Message(val id: String, val type: String, val text: String)
+data class Message(val id: String, val type: String, val text: String) {
+    val isCompaction get() = type == "contextCompaction"
+}
 data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null) {
     val terminal get() = status in setOf("completed", "failed", "interrupted")
 }
@@ -43,6 +45,7 @@ object Wire {
                 if (it.optString("type") == "text") it.optString("text") else "[${it.optString("type")}]"
             }.orEmpty()
             "agentMessage" -> json.optString("text")
+            "contextCompaction" -> "Kontextzusammenfassung · die Gesprächshistorie bleibt erhalten"
             else -> "${type}: ${json.optionalText("status") ?: "Eintrag im Serververlauf"}"
         }
         return Message(json.getString("id"), type, text)

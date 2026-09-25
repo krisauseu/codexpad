@@ -28,6 +28,7 @@ class ThreadSessionTest {
         var disconnect = false
         var connections = 0
         var posts = 0
+        override suspend fun compactThread(threadId: String) { error("Unexpected compact") }
         override suspend fun models() = emptyList<CatalogModel>()
         override suspend fun health() = "ok"
         override suspend fun workspaces() = emptyList<Workspace>()

@@ -92,6 +92,24 @@ class ApiTest {
         }
     }
 
+    @Test fun compactUsesEmptyAuthenticatedPostAndNeverRetries() = runBlocking {
+        MockWebServer().use { server ->
+            val api = CodexPadApi(server.url("/").toString(), token)
+            server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
+            api.compactThread("thread /1")
+            val request = server.takeRequest()
+            assertEquals("/threads/thread%20%2F1/compact", request.path)
+            assertEquals("POST", request.method)
+            assertEquals("{}", request.body.readUtf8())
+            assertEquals("Bearer $token", request.getHeader("Authorization"))
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            assertTrue(runCatching { api.compactThread("t") }.isFailure)
+            server.takeRequest()
+            assertNull(server.takeRequest(250, TimeUnit.MILLISECONDS))
+            assertEquals(2, server.requestCount)
+        }
+    }
+
     @Test fun errorBodyIsReadableAndWorkspaceIdIsEncoded() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setResponseCode(404).setBody("""{"error":"Unknown workspace"}"""))

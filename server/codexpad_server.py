@@ -291,6 +291,17 @@ class Handler(BaseHTTPRequestHandler):
                 return 200, {"thread": thread(thread_id)}
             if len(parts) == 3 and parts[2] == "history" and method == "GET":
                 return 200, {"thread": thread(thread_id, True)}
+            if len(parts) == 3 and parts[2] == "compact" and method == "POST":
+                current = thread(thread_id, True, allow_fresh=False)
+                if self.read_json():
+                    raise ApiError(400, "Thread compact accepts an empty JSON object")
+                if current.get("status", {}).get("type") == "active" or any(
+                        t.get("status") not in ("completed", "failed", "interrupted")
+                        for t in current.get("turns", [])):
+                    raise ApiError(409, "Thread is busy; reconcile history")
+                APP.call("thread/compact/start", {"threadId": current["id"]})
+                # Accepted only. Completion is authoritative in the existing SSE/history lifecycle.
+                return 202, {}
             if len(parts) == 5 and parts[2] == "turns" and parts[4] == "interrupt" and method == "POST":
                 current = thread(thread_id, True, allow_fresh=False)
                 if self.read_json():

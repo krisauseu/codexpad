@@ -28,6 +28,7 @@ interface CodexPadService {
     suspend fun thread(threadId: String): CodexThread
     suspend fun history(threadId: String): CodexThread
     suspend fun startTurn(threadId: String, message: String, model: String? = null, effort: String? = null): Turn
+    suspend fun compactThread(threadId: String)
     suspend fun interruptTurn(threadId: String, turnId: String)
     fun events(threadId: String): Flow<SseFrame>
 }
@@ -70,6 +71,10 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         request("threads", threadId, "turns", body = JSONObject().put("message", message).apply {
             model?.let { put("model", it) }; effort?.let { put("effort", it) }
         })).getJSONObject("turn"))
+
+    override suspend fun compactThread(threadId: String) {
+        json(request("threads", threadId, "compact", body = JSONObject()))
+    }
 
     override suspend fun interruptTurn(threadId: String, turnId: String) {
         json(request("threads", threadId, "turns", turnId, "interrupt", body = JSONObject()))

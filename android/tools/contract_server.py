@@ -63,6 +63,13 @@ class FixtureBackend:
                 if method == "thread/read" and not params.get("includeTurns"):
                     result["turns"] = []
                 return {"thread": result}
+            if method == "thread/compact/start":
+                turn = {"id": f"compact-{len(thread['turns']) + 1}", "status": "inProgress",
+                        "items": [{"id": "summary", "type": "contextCompaction"}]}
+                thread["turns"].append(turn)
+                thread["status"] = {"type": "active"}
+                threading.Thread(target=self.complete_compact, args=(thread, turn), daemon=True).start()
+                return {}
             if method == "turn/interrupt":
                 turn = next((t for t in thread["turns"] if t["id"] == params["turnId"]), None)
                 if not turn or turn["status"] != "inProgress":
@@ -83,6 +90,19 @@ class FixtureBackend:
                 threading.Thread(target=self.complete, args=(thread, turn), daemon=True).start()
                 return {"turn": copy.deepcopy(turn)}
             raise AssertionError(method)
+
+    def complete_compact(self, thread, turn):
+        time.sleep(.2)
+        self.emit(thread["id"], "turn/started", {"turn": turn})
+        self.emit(thread["id"], "item/started", {"turnId": turn["id"], "item": turn["items"][0]})
+        time.sleep(.2)
+        with self.lock:
+            turn["status"] = "completed"
+            thread["status"] = {"type": "idle"}
+            self.emit(thread["id"], "item/completed", {"turnId": turn["id"], "item": turn["items"][0]})
+            self.emit(thread["id"], "turn/completed", {"turn": turn})
+            self.emit(thread["id"], "thread/tokenUsage/updated", {"turnId": turn["id"], "tokenUsage": {
+                "last": {"totalTokens": 30}, "total": {"totalTokens": 900}, "modelContextWindow": 100}})
 
     def complete(self, thread, turn):
         tid = thread["id"]

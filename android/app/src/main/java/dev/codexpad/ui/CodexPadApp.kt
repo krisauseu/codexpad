@@ -152,7 +152,26 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     Text(vm.threadId.orEmpty(), style = MaterialTheme.typography.labelSmall)
-    Text(state.connection, style = MaterialTheme.typography.labelLarge)
+    var contextMenu by remember(session) { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(state.connection, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        Box {
+            TextButton(onClick = { contextMenu = true }) { Text("Kontext") }
+            DropdownMenu(expanded = contextMenu, onDismissRequest = { contextMenu = false }) {
+                Text("Codex fasst den bisherigen Kontext zusammen, um Platz im Kontextfenster zu schaffen.",
+                    modifier = Modifier.widthIn(max = 280.dp).padding(16.dp), style = MaterialTheme.typography.bodySmall)
+                DropdownMenuItem(text = { Text("Kontext komprimieren") },
+                    enabled = state.canCompact && !vm.sending && !vm.uncertain,
+                    onClick = { contextMenu = false; vm.compact(session) })
+            }
+        }
+    }
+    state.compaction?.let { compact ->
+        Text(compact.label, style = MaterialTheme.typography.labelMedium)
+        if (compact.phase == "unknown") TextButton(onClick = { scope.launch { session.refreshVisible() } }) {
+            Text("Zustand abgleichen")
+        }
+    }
     state.timeline.thread?.let { Text("Threadstatus: ${it.status}", style = MaterialTheme.typography.labelMedium) }
     if (!state.connected) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.error?.let { ErrorText(it) }
@@ -197,7 +216,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         }
     }
     state.interruptError?.let { ErrorText(it) }
-    if (state.timeline.busy || state.interruptTurnId != null) {
+    if (state.compaction?.pending != true && (state.timeline.busy || state.interruptTurnId != null)) {
         val target = state.stoppableTurnId
         OutlinedButton(onClick = { target?.let { vm.stop(session, it) } }, enabled = target != null,
             modifier = Modifier.align(Alignment.End)) {
@@ -226,7 +245,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         enabled = !vm.sending, isError = count > 4096,
         supportingText = { Text("$count / 4096 Zeichen") })
     Button(onClick = vm::send, modifier = Modifier.align(Alignment.End).padding(bottom = 8.dp),
-        enabled = state.connected && !state.timeline.busy && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
+        enabled = state.connected && !state.timeline.busy && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
             vm.draft.isNotBlank() && count <= 4096) {
         Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
     }
@@ -239,7 +258,7 @@ private fun MessageCard(message: Message, live: Boolean) {
     Surface(color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
         shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(if (user) "Du" else if (agent) "Codex" else "Servereintrag", fontWeight = FontWeight.SemiBold)
+            Text(if (user) "Du" else if (agent) "Codex" else if (message.isCompaction) "Kontextkomprimierung" else "Servereintrag", fontWeight = FontWeight.SemiBold)
             if (live && agent) Text("Live-Ausschnitt · bis zum History-Abgleich möglicherweise unvollständig",
                 style = MaterialTheme.typography.labelSmall)
             SelectionContainer { Text(message.text, style = MaterialTheme.typography.bodyLarge) }

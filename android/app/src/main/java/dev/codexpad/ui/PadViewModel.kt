@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.codexpad.BuildConfig
 import dev.codexpad.data.ThreadSession
+import dev.codexpad.data.Compaction
 import dev.codexpad.model.*
 import dev.codexpad.network.CodexPadApi
 import dev.codexpad.network.connectionError
@@ -185,11 +186,21 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     private fun newSession(id: String): ThreadSession {
         val server = config.serverUrl
         var previous: String? = saved["interrupt:$id"]
-        return ThreadSession(api, id, previous) { pending ->
+        var previousCompact: String? = saved["compact:$id"]
+        return ThreadSession(api, id, previous, saveInterrupt = { pending ->
             if (config.serverUrl == server && saved.get<String>("interrupt:$id") == previous)
                 saved["interrupt:$id"] = pending
             previous = pending
-        }
+        }, pendingCompaction = Compaction.restore(previousCompact), saveCompaction = { compact ->
+            if (config.serverUrl == server && saved.get<String>("compact:$id") == previousCompact)
+                saved["compact:$id"] = compact?.json()
+            previousCompact = compact?.json()
+        })
+    }
+
+    fun compact(target: ThreadSession) {
+        if (session !== target || sending || uncertain) return
+        viewModelScope.launch { target.compact() }
     }
 
     fun stop(target: ThreadSession, turnId: String) {
@@ -334,7 +345,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         val message = draft.trim()
         val model = nextModel
         val effort = nextEffort
-        if (sending || uncertain || target.state.value.interruptTurnId != null ||
+        if (sending || uncertain || target.state.value.compaction?.pending == true || target.state.value.interruptTurnId != null ||
             !target.state.value.connected || target.state.value.timeline.busy ||
             message.isEmpty() || message.codePointCount(0, message.length) > 4096) return
         // Persist before sending. Process death must not turn an unacknowledged POST into a retry.

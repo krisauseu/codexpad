@@ -219,6 +219,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         val server = config.serverUrl
         var previous: String? = saved["interrupt:$id"]
         var previousCompact: String? = saved["compact:$id"]
+        var previousAnswers: ArrayList<String>? = saved["answers:$id"]
         return ThreadSession(api, id, previous, saveInterrupt = { pending ->
             if (config.serverUrl == server && saved.get<String>("interrupt:$id") == previous)
                 saved["interrupt:$id"] = pending
@@ -227,6 +228,10 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             if (config.serverUrl == server && saved.get<String>("compact:$id") == previousCompact)
                 saved["compact:$id"] = compact?.json()
             previousCompact = compact?.json()
+        }, pendingAnswers = previousAnswers?.toSet().orEmpty(), saveAnswers = { answers ->
+            if (config.serverUrl == server && saved.get<ArrayList<String>>("answers:$id") == previousAnswers)
+                saved["answers:$id"] = ArrayList(answers)
+            previousAnswers = ArrayList(answers)
         })
     }
 
@@ -438,7 +443,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         val model = nextModel
         val effort = nextEffort
         if (sending || uncertain || target.state.value.compaction?.pending == true || target.state.value.interruptTurnId != null ||
-            !target.state.value.connected || target.state.value.timeline.busy ||
+            !target.state.value.connected || (target.state.value.timeline.busy && !target.state.value.canMessageDuringInput) ||
             (message.isEmpty() && selectedImages.isEmpty() && selectedTexts.isEmpty()) || message.codePointCount(0, message.length) > 4096) return
         sending = true
         sendError = null

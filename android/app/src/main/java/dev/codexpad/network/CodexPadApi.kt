@@ -32,6 +32,7 @@ interface CodexPadService {
     suspend fun startTurn(threadId: String, message: String, model: String? = null, effort: String? = null): Turn
     suspend fun compactThread(threadId: String)
     suspend fun interruptTurn(threadId: String, turnId: String)
+    suspend fun answerRequest(threadId: String, requestId: String, answers: Map<String, InputAnswer>)
     fun events(threadId: String): Flow<SseFrame>
 }
 
@@ -69,6 +70,11 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         json(request("workspaces", workspaceId, "threads", body = JSONObject())))
     override suspend fun thread(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId)))
     override suspend fun history(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId, "history")))
+    override suspend fun answerRequest(threadId: String, requestId: String, answers: Map<String, InputAnswer>) {
+        val values = JSONObject()
+        answers.forEach { (id, answer) -> values.put(id, JSONObject().put(if (answer.isOption) "option" else "text", answer.value)) }
+        json(request("threads", threadId, "requests", requestId, "answer", body = JSONObject().put("answers", values)))
+    }
     override suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?) =
         startTurn(threadId, message, model, effort, emptyList(), emptyList())
 

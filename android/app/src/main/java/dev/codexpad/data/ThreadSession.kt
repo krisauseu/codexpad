@@ -3,6 +3,8 @@ package dev.codexpad.data
 import dev.codexpad.model.Wire
 import dev.codexpad.model.ContextUsage
 import dev.codexpad.model.ModelReroute
+import dev.codexpad.model.InputAnswer
+import dev.codexpad.network.ApiException
 import dev.codexpad.network.CodexPadService
 import dev.codexpad.network.connectionError
 import java.io.IOException
@@ -25,7 +27,13 @@ data class ThreadState(
     val interruptTurnId: String? = null,
     val interruptError: String? = null,
     val compaction: Compaction? = null,
+    val answerAttempts: Set<String> = emptySet(),
+    val answerSending: Set<String> = emptySet(),
+    val answerErrors: Map<String, String> = emptyMap(),
 ) {
+    val requests get() = timeline.thread?.pendingRequests.orEmpty()
+    // 0.156.1 turn/start can steer this same turn while a non-blocking question remains open.
+    val canMessageDuringInput get() = requests.isNotEmpty() && requests.none { it.isBlocking }
     val canCompact get() = connected && !timeline.busy && interruptTurnId == null && compaction?.pending != true
     // Ambiguous/missing IDs and offline snapshots never select a target implicitly.
     val stoppableTurnId: String? get() = if (connected && interruptTurnId == null && compaction?.pending != true)
@@ -41,8 +49,11 @@ class ThreadSession(
     private val saveInterrupt: (String?) -> Unit = {},
     pendingCompaction: Compaction? = null,
     private val saveCompaction: (Compaction?) -> Unit = {},
+    pendingAnswers: Set<String> = emptySet(),
+    private val saveAnswers: (Set<String>) -> Unit = {},
 ) {
-    private val mutable = MutableStateFlow(ThreadState(interruptTurnId = pendingInterrupt, compaction = pendingCompaction))
+    private val mutable = MutableStateFlow(ThreadState(interruptTurnId = pendingInterrupt, compaction = pendingCompaction,
+        answerAttempts = pendingAnswers, answerErrors = pendingAnswers.associateWith { "Antwort unbestätigt · Zustand abgleichen" }))
     val state = mutable.asStateFlow()
     private val refreshLock = Mutex()
 
@@ -53,6 +64,52 @@ class ThreadSession(
         mutable.update { it.copy(timeline = it.timeline.reconcile(history, resetLive), error = null) }
         reconcileInterrupt()
         reconcileCompaction(history)
+        reconcileAnswers()
+    }
+
+    private fun reconcileAnswers() {
+        mutable.update { state ->
+            val open = state.requests.map { it.id }.toSet()
+            state.copy(answerAttempts = state.answerAttempts.intersect(open),
+                answerErrors = state.answerErrors.filterKeys { it in open })
+        }
+        saveAnswers(state.value.answerAttempts)
+    }
+
+    suspend fun answer(requestId: String, answers: Map<String, InputAnswer>) {
+        val before = state.value
+        if (!before.connected || requestId in before.answerAttempts || requestId in before.answerSending ||
+            before.requests.none { it.id == requestId && it.status == "pending" }) return
+        if (!mutable.compareAndSet(before, before.copy(answerAttempts = before.answerAttempts + requestId,
+                answerSending = before.answerSending + requestId, answerErrors = before.answerErrors - requestId))) return
+        saveAnswers(state.value.answerAttempts) // Before I/O, including rotation/process restoration.
+        try { api.answerRequest(threadId, requestId, answers) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) {
+            mutable.update { it.copy(answerErrors = it.answerErrors + (requestId to
+                "Antwort unbestätigt: ${connectionError(error)}"),
+                answerAttempts = if (error is ApiException && error.status == 400) it.answerAttempts - requestId else it.answerAttempts) }
+        } finally {
+            mutable.update { it.copy(answerSending = it.answerSending - requestId) }
+            saveAnswers(state.value.answerAttempts)
+        }
+        refreshVisible()
+    }
+
+    // Explicit user action after uncertainty. Only a fresh, still-pending callback
+    // permits another attempt; the server atomically prevents duplicate forwarding.
+    suspend fun reviewAnswer(requestId: String) {
+        if (requestId in state.value.answerSending) return
+        try {
+            refresh()
+            mutable.update { state ->
+                if (state.requests.any { it.id == requestId && it.status == "pending" })
+                    state.copy(answerAttempts = state.answerAttempts - requestId, answerErrors = state.answerErrors - requestId)
+                else state
+            }
+            saveAnswers(state.value.answerAttempts)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) { mutable.update { it.copy(error = connectionError(error)) } }
     }
 
     private fun reconcileCompaction(history: dev.codexpad.model.CodexThread) {
@@ -146,6 +203,7 @@ class ThreadSession(
                                         connected = true, connection = "Live verbunden", error = null) }
                                     reconcileInterrupt()
                                     reconcileCompaction(snapshot)
+                                    reconcileAnswers()
                                     hasSnapshot = true
                                     backoff = 1_000
                                 }
@@ -184,7 +242,8 @@ class ThreadSession(
                                             saveCompaction(state.value.compaction)
                                             refresh()
                                         }
-                                        if (method in setOf("turn/completed", "thread/status/changed", "error")) refresh()
+                                        if (method in setOf("turn/completed", "thread/status/changed", "error",
+                                            "codexpad/requests/changed", "serverRequest/resolved", "thread/closed")) refresh()
                                         if (method == "error") mutable.update {
                                             it.copy(error = params.optJSONObject("error")?.optString("message") ?: "Agentfehler")
                                         }

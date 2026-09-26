@@ -33,6 +33,14 @@ class ThreadSessionTest {
         var connections = 0
         var posts = 0
         override suspend fun compactThread(threadId: String) { error("Unexpected compact") }
+        var pendingRequest = false
+        var answerCalls = 0
+        var answerAction: suspend () -> Unit = {}
+        fun requestJson() = org.json.JSONObject("""{"id":"r","threadId":"t","turnId":"turn","status":"pending","isBlocking":false,"questions":[{"id":"name","header":"Name","question":"Filename?","isOther":true,"isSecret":false,"options":[{"label":"a","description":"A"}]}]}""")
+        override suspend fun answerRequest(threadId: String, requestId: String, answers: Map<String, InputAnswer>) {
+            answerCalls++
+            answerAction()
+        }
         override suspend fun models() = emptyList<CatalogModel>()
         override suspend fun health() = "ok"
         override suspend fun workspaces() = emptyList<Workspace>()
@@ -42,7 +50,8 @@ class ThreadSessionTest {
         fun snapshot() = CodexThread("t", status = if (completed) "idle" else "active", turns = listOf(
             Turn("turn", if (completed) terminalStatus else "inProgress",
                 listOf(Message("legacy-2", "agentMessage", if (completed) "Complete answer" else "Prefix")) +
-                    if (toolMode) listOf(Wire.message(toolJson())) else emptyList())))
+                    if (toolMode) listOf(Wire.message(toolJson())) else emptyList())), pendingRequests = if (pendingRequest) Wire.thread(org.json.JSONObject()
+                    .put("id", "t").put("pendingRequests", org.json.JSONArray().put(requestJson()))).pendingRequests else emptyList())
         override suspend fun thread(threadId: String): CodexThread { calls += "snapshot"; return snapshot() }
         override suspend fun history(threadId: String): CodexThread { calls += "history"; return snapshot() }
         override fun events(threadId: String) = flow {
@@ -52,6 +61,7 @@ class ThreadSessionTest {
             val text = if (completed) "Complete answer" else "Prefix"
             val snapshotJson = org.json.JSONObject("""{"thread":{"id":"t","model":"configured","reasoningEffort":"custom","status":{"type":"idle"},"turns":[
                 {"id":"turn","status":"$status","items":[{"id":"legacy-2","type":"agentMessage","text":"$text"}]}]}}""")
+            if (pendingRequest) snapshotJson.getJSONObject("thread").put("pendingRequests", org.json.JSONArray().put(requestJson()))
             if (toolMode) snapshotJson.getJSONObject("thread").getJSONArray("turns").getJSONObject(0)
                 .getJSONArray("items").put(toolJson())
             emit(SseFrame("snapshot", snapshotJson.toString()))
@@ -67,6 +77,52 @@ class ThreadSessionTest {
             }
             awaitCancellation()
         }
+    }
+
+    @Test fun inputReconnectLostResponseDoubleTapAndResolution() = runTest {
+        val server = FakeServer().apply { pendingRequest = true }
+        var saved = emptySet<String>()
+        val session = ThreadSession(server, "t", saveAnswers = { saved = it })
+        val connection = backgroundScope.launch { session.run() }; runCurrent()
+        assertEquals("r", session.state.value.requests.single().id)
+        assertTrue(session.state.value.canMessageDuringInput)
+        assertFalse(session.state.value.copy(timeline = session.state.value.timeline.copy(thread =
+            session.state.value.timeline.thread!!.copy(pendingRequests = session.state.value.requests.map { it.copy(isBlocking = true) }))).canMessageDuringInput)
+        connection.cancel(); runCurrent()
+        backgroundScope.launch { session.run() }; runCurrent()
+        assertEquals("r", session.state.value.requests.single().id)
+        server.answerAction = { delay(100); throw IOException("Lost HTTP response") }
+        val answer = mapOf("name" to InputAnswer("my-name.txt"))
+        val posting = launch { session.answer("r", answer) }; runCurrent()
+        session.answer("r", answer)
+        assertEquals(setOf("r"), saved)
+        advanceTimeBy(100); runCurrent(); posting.join()
+        assertEquals(1, server.answerCalls)
+        assertTrue(session.state.value.answerErrors.containsKey("r"))
+        session.answer("r", answer)
+        assertEquals(1, server.answerCalls)
+        val restored = ThreadSession(server, "t", pendingAnswers = saved)
+        backgroundScope.launch { restored.run() }; runCurrent()
+        restored.answer("r", answer)
+        assertEquals(1, server.answerCalls)
+        server.pendingRequest = false // Another client/server resolves it, live event lost.
+        server.completed = true
+        advanceTimeBy(5000); runCurrent()
+        assertTrue(session.state.value.requests.isEmpty())
+        assertTrue(saved.isEmpty())
+        assertTrue(session.state.value.timeline.turns.single().terminal)
+        assertEquals(1, server.answerCalls)
+    }
+
+    @Test fun unansweredRequestRequiresExplicitFreshReviewAfterUncertainty() = runTest {
+        val server = FakeServer().apply { pendingRequest = true }
+        val session = ThreadSession(server, "t", pendingAnswers = setOf("r"))
+        backgroundScope.launch { session.run() }; runCurrent()
+        assertTrue("r" in session.state.value.answerAttempts)
+        session.reviewAnswer("r")
+        assertTrue(session.state.value.answerAttempts.isEmpty())
+        session.answer("r", mapOf("name" to InputAnswer("a", true)))
+        assertEquals(1, server.answerCalls)
     }
 
     @Test fun runningCommandReconnectAndMissedCompletionHealFromHistory() = runTest {

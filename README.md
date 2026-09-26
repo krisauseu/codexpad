@@ -213,6 +213,7 @@ Wichtige Architekturentscheidungen:
 Weitere Hintergrunddokumentation:
 
 - [Vision](VISION.md)
+- [Interaktive Rückfragen: Vertrag und Tablet-Nachweis](docs/verification-user-input.md)
 - [Codex-Integration](docs/research/codex-integration.md)
 - [Android-Plattform](docs/research/android-platform.md)
 - [Remote-Workspaces](docs/research/remote-workspaces.md)

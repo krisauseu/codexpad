@@ -10,6 +10,12 @@ data class Message(val id: String, val type: String, val text: String, val activ
     val isCompaction get() = type == "contextCompaction"
 }
 data class Artifact(val id: String, val name: String, val mimeType: String, val size: Long)
+data class InputOption(val label: String, val description: String)
+data class InputQuestion(val id: String, val header: String, val question: String,
+    val isOther: Boolean, val isSecret: Boolean, val options: List<InputOption>)
+data class InputRequest(val id: String, val threadId: String, val turnId: String, val status: String,
+    val isBlocking: Boolean, val questions: List<InputQuestion>)
+data class InputAnswer(val value: String, val isOption: Boolean = false)
 
 data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null, val artifacts: List<Artifact> = emptyList()) {
     val terminal get() = status in setOf("completed", "failed", "interrupted")
@@ -21,6 +27,7 @@ data class CodexThread(
     val turns: List<Turn> = emptyList(),
     val model: String? = null,
     val reasoningEffort: String? = null,
+    val pendingRequests: List<InputRequest> = emptyList(),
 )
 
 fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
@@ -35,6 +42,17 @@ object Wire {
         model = json.optionalText("model"),
         reasoningEffort = json.optionalText("reasoningEffort"),
         turns = json.optJSONArray("turns")?.objects()?.map(::turn).orEmpty(),
+        pendingRequests = json.optJSONArray("pendingRequests")?.objects()?.map { request ->
+            InputRequest(request.getString("id"), request.getString("threadId"), request.getString("turnId"),
+                request.getString("status"), request.getBoolean("isBlocking"),
+                request.getJSONArray("questions").objects().map { question ->
+                    InputQuestion(question.getString("id"), question.getString("header"), question.getString("question"),
+                        question.optBoolean("isOther"), question.optBoolean("isSecret"),
+                        question.optJSONArray("options")?.objects()?.map {
+                            InputOption(it.getString("label"), it.getString("description"))
+                        }.orEmpty())
+                })
+        }.orEmpty(),
     )
     fun turn(json: JSONObject) = Turn(
         id = json.getString("id"),

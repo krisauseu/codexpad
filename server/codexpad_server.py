@@ -48,11 +48,109 @@ def load_access_token():
 ACCESS_TOKEN = None
 
 
+class UserInputs:
+    """Outstanding callbacks on this stdio connection, not persistent agent state.
+
+    Public IDs are random per callback/connection: a stale Android ID can never
+    answer a reused numeric RPC ID after a child-process restart.
+    """
+    def __init__(self, send):
+        self.send = send
+        self.lock = threading.RLock()
+        self.requests = {}
+        self.wire_ids = {}
+
+    @staticmethod
+    def wire_key(value):
+        return type(value).__name__, value
+
+    def receive(self, message):
+        params = message["params"]
+        key = self.wire_key(message["id"])
+        with self.lock:
+            # Resume replays the same request. Never reopen an answered callback.
+            if key in self.wire_ids:
+                return
+            public_id = secrets.token_hex(16)
+            self.wire_ids[key] = public_id
+            self.requests[public_id] = {"id": public_id, "rpcId": message["id"],
+                **copy.deepcopy(params), "status": "pending"}
+
+    def notification(self, message):
+        params = message.get("params") or {}
+        with self.lock:
+            if message["method"] == "serverRequest/resolved":
+                public_id = self.wire_ids.get(self.wire_key(params.get("requestId")))
+                entry = self.requests.get(public_id)
+                if entry and entry["threadId"] == params.get("threadId"):
+                    self.finish(entry, "resolved")
+            elif message["method"] in ("turn/completed", "thread/closed"):
+                for entry in self.requests.values():
+                    if entry["threadId"] == params.get("threadId") and (
+                            message["method"] == "thread/closed" or
+                            entry["turnId"] == (params.get("turn") or {}).get("id")):
+                        if entry["status"] in ("pending", "answering"):
+                            self.finish(entry, "cancelled")
+
+    @staticmethod
+    def finish(entry, status):
+        entry["status"] = status
+        # Retain only a correlation tombstone, never the user's submitted answer.
+        entry.pop("questions", None)
+
+    def closed(self):
+        with self.lock:
+            for entry in self.requests.values():
+                self.finish(entry, "cancelled")
+
+    def snapshot(self, thread_id, turns=()):
+        with self.lock:
+            terminal = {turn["id"] for turn in turns if turn.get("status") in ("completed", "failed", "interrupted")}
+            for entry in self.requests.values():
+                if entry["threadId"] == thread_id and entry["turnId"] in terminal and entry["status"] in ("pending", "answering"):
+                    self.finish(entry, "cancelled")
+            return [{k: copy.deepcopy(v) for k, v in entry.items() if k != "rpcId"}
+                    for entry in self.requests.values() if entry["threadId"] == thread_id
+                    and entry["status"] in ("pending", "answering")]
+
+    def answer(self, thread_id, request_id, payload):
+        with self.lock:
+            entry = self.requests.get(request_id)
+            if not entry or entry["threadId"] != thread_id:
+                raise ApiError(404, "Unknown request for this thread")
+            if entry["status"] != "pending":
+                raise ApiError(409, "Request is no longer answerable; reconcile history")
+            questions = entry["questions"]
+            answers = payload.get("answers")
+            if (set(payload) != {"answers"} or not isinstance(answers, dict) or
+                    set(answers) != {q["id"] for q in questions}):
+                raise ApiError(400, "Answer every question exactly once")
+            result = {}
+            for question in questions:
+                answer = answers[question["id"]]
+                if not isinstance(answer, dict) or set(answer) not in ({"text"}, {"option"}):
+                    raise ApiError(400, "Expected one text or option answer")
+                value = next(iter(answer.values()))
+                if not isinstance(value, str) or not value.strip() or len(value) > 4096:
+                    raise ApiError(400, "Answer must contain 1–4096 characters")
+                options = question.get("options") or []
+                if "option" in answer:
+                    if value not in {option["label"] for option in options}:
+                        raise ApiError(400, "Unknown selection option")
+                elif options and not question.get("isOther"):
+                    raise ApiError(400, "This question requires a listed option")
+                result[question["id"]] = {"answers": [value]}
+            # Claim before writing. A failed/partial write is ambiguous, never retry it.
+            entry["status"] = "answering"
+            self.send({"id": entry["rpcId"], "result": {"answers": result}})
+
+
 class AppServer:
     def __init__(self):
         self.proc = subprocess.Popen(["codex", "app-server", "--stdio",
                                       "-c", "sandbox_mode=\"danger-full-access\"",
-                                      "-c", "approval_policy=\"never\""],
+                                      "-c", "approval_policy=\"never\"",
+                                      "-c", "features.default_mode_request_user_input=true"],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, text=True, bufsize=1)
         self.pending = {}
@@ -60,6 +158,7 @@ class AppServer:
         self.lock = threading.Lock()
         self.subscribers = {}
         self.fresh = {}
+        self.user_inputs = UserInputs(self.send)
         self.init_result = None
         threading.Thread(target=self._read, daemon=True).start()
         threading.Thread(target=self._stderr, daemon=True).start()
@@ -110,24 +209,17 @@ class AppServer:
                 if reply:
                     reply.put(message)
             elif "id" in message and "method" in message:
-                # Approvals are deliberately outside this slice. Never leave a request unanswered.
-                self.send({"id": message["id"], "error": {"code": -32601, "message": "CodexPad approval handling is not implemented"}})
+                if message["method"] == "item/tool/requestUserInput":
+                    self.user_inputs.receive(message)
+                    self.publish({"method": "codexpad/requests/changed", "params": {
+                        "threadId": message["params"]["threadId"]}})
+                else:
+                    # User questions are separate from approvals; no permission grants.
+                    self.send({"id": message["id"], "error": {"code": -32601, "message": "Unsupported server request"}})
             elif "method" in message:
-                params = message.get("params") or {}
-                thread_id = params.get("threadId") or (params.get("thread") or {}).get("id")
-                if thread_id:
-                    with self.lock:
-                        listeners = list(self.subscribers.get(thread_id, ()))
-                    for listener in listeners:
-                        try:
-                            listener.put_nowait(message)
-                        except queue.Full:
-                            # A slow client must resynchronize through thread/read.
-                            try:
-                                listener.get_nowait()
-                                listener.put_nowait({"method": "codexpad/overflow", "params": {"threadId": thread_id}})
-                            except queue.Empty:
-                                pass
+                self.user_inputs.notification(message)
+                self.publish(message)
+        self.user_inputs.closed()
         with self.lock:
             pending = list(self.pending.values())
         for reply in pending:
@@ -135,6 +227,22 @@ class AppServer:
                 reply.put_nowait({"error": {"message": "App Server connection closed"}})
             except queue.Full:
                 pass
+
+    def publish(self, message):
+        params = message.get("params") or {}
+        thread_id = params.get("threadId") or (params.get("thread") or {}).get("id")
+        if thread_id:
+            with self.lock:
+                listeners = list(self.subscribers.get(thread_id, ()))
+            for listener in listeners:
+                try:
+                    listener.put_nowait(message)
+                except queue.Full:
+                    try:
+                        listener.get_nowait()
+                        listener.put_nowait({"method": "codexpad/overflow", "params": {"threadId": thread_id}})
+                    except (queue.Empty, queue.Full):
+                        pass
 
     def subscribe(self, thread_id):
         listener = queue.Queue(maxsize=256)
@@ -173,6 +281,9 @@ def thread(thread_id, include_turns=False, allow_fresh=True):
             raise
     if result.get("cwd") not in {str(p) for p in workspaces().values()}:
         raise ApiError(404, "Thread is not in a configured workspace")
+    result = copy.deepcopy(result)
+    inputs = getattr(APP, "user_inputs", None)
+    result["pendingRequests"] = inputs.snapshot(thread_id, result.get("turns", [])) if inputs else []
     return result
 
 
@@ -513,6 +624,13 @@ class Handler(BaseHTTPRequestHandler):
                 return 200, {"thread": thread(thread_id)}
             if len(parts) == 3 and parts[2] == "history" and method == "GET":
                 return 200, {"thread": with_artifacts(thread(thread_id, True))}
+            if len(parts) == 5 and parts[2] == "requests" and parts[4] == "answer" and method == "POST":
+                # Fresh backend read checks liveness and configured workspace ownership.
+                thread(thread_id, True, allow_fresh=False)
+                APP.user_inputs.answer(thread_id, parts[3], self.read_json())
+                APP.publish({"method": "codexpad/requests/changed", "params": {"threadId": thread_id}})
+                # The response frame has no response RPC of its own. Resolution is SSE/state.
+                return 202, {}
             if len(parts) == 4 and parts[2] == "artifacts" and method == "GET":
                 if not re.fullmatch(r"[a-f0-9]{64}", parts[3]):
                     raise ApiError(404, "Unknown artifact")

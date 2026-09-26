@@ -141,3 +141,23 @@ Pfad behält die ID. Keine Datenbank, kein Workspace-Vollscan, kein Watcher, kei
 zusätzliche Serverkonfiguration. Der normale Reconciliation-Pfad liefert die Karten
 auch nach Reconnect und Serverneustart. Android öffnet über begrenzten App-Cache
 und FileProvider-Lesegrant; bewusstes Speichern nutzt ACTION_CREATE_DOCUMENT.
+
+## Interaktive Rückfragen
+
+Codex 0.156.1: `item/tool/requestUserInput` für Freitext/eigene Antwort und
+Einzelauswahl. Der Adapter aktiviert `features.default_mode_request_user_input`
+für den normalen Modus; `approvalPolicy: "never"` bleibt unverändert. Keine
+Command-/File-/Permission-Approval-UI oder allgemeine Grants.
+
+Thread/History/SSE-Snapshot enthalten `thread.pendingRequests`. Authentifiziertes
+`POST /threads/{threadId}/requests/{id}/answer` mit
+`{"answers":{"questionId":{"text":"Antwort"}}}` bzw. `{"option":"Label"}`
+sendet genau eine validierte Antwort pro Frage an denselben laufenden Turn.
+202 bestätigt das Schreiben, `serverRequest/resolved`/History die Auflösung;
+400 bei ungültiger Antwort, 404 bei unbekannter/fremder ID, 409 bei erledigter ID.
+Keine automatische Wiederholung bei unklarem Mutationsausgang.
+
+Offene Callbacks bleiben über Android-Reconnect im langlebigen Adapter erhalten;
+Snapshots und periodischer Abgleich ersetzen ein Event-Replay. Ein App-Server-
+Neustart beendet alte Callbacks; sie werden nicht aus historischen Texten erzeugt.
+[Vertrag, echte Tablet-Tests und Grenzen](../docs/verification-user-input.md).

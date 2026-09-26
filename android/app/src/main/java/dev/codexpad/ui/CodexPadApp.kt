@@ -188,18 +188,21 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         }
     }
     state.timeline.thread?.let { Text("Threadstatus: ${it.status}", style = MaterialTheme.typography.labelMedium) }
+    if (state.requests.isNotEmpty()) Text("Codex wartet auf eine Angabe · ${state.requests.size} offene Rückfrage(n)",
+        style = MaterialTheme.typography.labelLarge)
     if (!state.connected) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.error?.let { ErrorText(it) }
     // Capture the reader's intent while scrolling, before incoming content changes the layout.
     var followTail by remember { mutableStateOf(true) }
-    val tailIndex = turns.sumOf { 1 + it.items.size + it.artifacts.size + if (it.error == null) 0 else 1 }
+    val tailIndex = turns.sumOf { 1 + it.items.size + it.artifacts.size + if (it.error == null) 0 else 1 } + state.requests.size
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress to listState.canScrollForward }.collect { (scrolling, more) ->
             if (scrolling) followTail = !more
         }
     }
-    LaunchedEffect(turns) {
-        if (followTail && turns.isNotEmpty()) listState.scrollToItem(tailIndex)
+    LaunchedEffect(turns, state.requests) {
+        if (followTail && turns.isNotEmpty()) listState.scrollToItem(
+            if (state.requests.isNotEmpty()) tailIndex - state.requests.size else tailIndex)
     }
     LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
@@ -218,6 +221,12 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
                 ArtifactCard(artifact, vm.threadId.orEmpty(), vm)
             }
             turn.error?.let { error -> item(key = "error:${turn.id}") { ErrorText(error) } }
+        }
+        items(state.requests, key = { "request:${it.id}" }) { request ->
+            UserInputCard(request, state.connected, request.id in state.answerAttempts,
+                request.id in state.answerSending, state.answerErrors[request.id],
+                onAnswer = { answers -> scope.launch { session.answer(request.id, answers) } },
+                onReview = { scope.launch { session.reviewAnswer(request.id) } })
         }
         item(key = "tail") { Spacer(Modifier.height(1.dp)) }
     }
@@ -246,21 +255,23 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             style = MaterialTheme.typography.labelMedium)
         Text(state.usage.label, style = MaterialTheme.typography.labelSmall)
     }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-        Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
-            style = MaterialTheme.typography.labelSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
-                label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
-            AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
-                label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+    if (state.requests.isEmpty()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
+                style = MaterialTheme.typography.labelSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
+                    label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
+                AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
+                    label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+            }
         }
-    }
-    if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
-    vm.modelError?.let { ErrorText("Modellkatalog: $it") }
-    if (vm.modelError != null || vm.models.isEmpty()) TextButton(onClick = vm::loadModels, enabled = !vm.modelsLoading) {
-        Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
+        if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
+        vm.modelError?.let { ErrorText("Modellkatalog: $it") }
+        if (vm.modelError != null || vm.models.isEmpty()) TextButton(onClick = vm::loadModels, enabled = !vm.modelsLoading) {
+            Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
+        }
     }
     val count = vm.draft.codePointCount(0, vm.draft.length)
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -298,13 +309,14 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             Text("+", style = MaterialTheme.typography.titleLarge)
         }
         OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.weight(1f),
-            label = { Text("Nachricht an Codex") }, minLines = 2, maxLines = 5,
+            label = { Text(if (state.canMessageDuringInput) "Weitere Nachricht an Codex" else "Nachricht an Codex") },
+            minLines = if (state.requests.isEmpty()) 2 else 1, maxLines = 5,
             enabled = !vm.sending, isError = count > 4096,
             supportingText = { Text("$count / 4096 Zeichen") })
         Button(onClick = vm::send, modifier = Modifier.padding(bottom = 8.dp),
-            enabled = state.connected && !state.timeline.busy && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
+            enabled = state.connected && (!state.timeline.busy || state.canMessageDuringInput) && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
                 (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= 4096) {
-            Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
+            Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy && !state.canMessageDuringInput) "Turn läuft …" else "Senden")
         }
     }
 }

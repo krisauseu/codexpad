@@ -25,6 +25,7 @@ class CompactionTest {
         override suspend fun compactThread(threadId: String) { compactCalls++; action() }
         override suspend fun thread(threadId: String) = history
         override suspend fun history(threadId: String) = history
+        override suspend fun answerRequest(threadId: String, requestId: String, answers: Map<String, InputAnswer>) { error("Unexpected answer") }
         override suspend fun models() = emptyList<CatalogModel>()
         override suspend fun health() = "ok"
         override suspend fun workspaces() = emptyList<Workspace>()

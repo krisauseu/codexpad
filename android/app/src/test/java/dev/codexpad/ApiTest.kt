@@ -13,6 +13,26 @@ import java.util.concurrent.TimeUnit
 
 class ApiTest {
     private val token = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
+    @Test fun userInputAnswersAreAuthenticatedTypedAndNeverRetried() = runBlocking {
+        MockWebServer().use { server ->
+            val api = CodexPadApi(server.url("/").toString(), token)
+            server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
+            api.answerRequest("thread", "request", mapOf("name" to dev.codexpad.model.InputAnswer("mine.txt"),
+                "choice" to dev.codexpad.model.InputAnswer("B", true)))
+            val request = server.takeRequest()
+            assertEquals("/threads/thread/requests/request/answer", request.path)
+            assertEquals("Bearer $token", request.getHeader("Authorization"))
+            val answers = JSONObject(request.body.readUtf8()).getJSONObject("answers")
+            assertEquals("mine.txt", answers.getJSONObject("name").getString("text"))
+            assertEquals("B", answers.getJSONObject("choice").getString("option"))
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            try { api.answerRequest("thread", "request", emptyMap()); fail("Expected lost response") }
+            catch (_: java.io.IOException) { }
+            assertNotNull(server.takeRequest(1, TimeUnit.SECONDS))
+            assertNull(server.takeRequest(200, TimeUnit.MILLISECONDS))
+        }
+    }
+
     @Test fun multipartTurnCarriesRealBytesAndAuth() = runBlocking {
         MockWebServer().use { server ->
             val api = CodexPadApi(server.url("/").toString(), token)

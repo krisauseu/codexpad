@@ -54,7 +54,8 @@ class AuthenticationTest(unittest.TestCase):
         routes = [("GET", "/models"), ("GET", "/workspaces"), ("GET", "/workspaces/demo/threads"),
                   ("POST", "/workspaces/demo/threads"), ("GET", "/threads/t"),
                   ("GET", "/threads/t/history"), ("POST", "/threads/t/turns"), ("POST", "/threads/t/compact"),
-                  ("POST", "/threads/t/turns/u/interrupt"), ("GET", "/threads/t/events"), ("GET", "/unknown"), ("DELETE", "/threads/t")]
+                  ("POST", "/threads/t/turns/u/interrupt"), ("POST", "/threads/t/requests/r/answer"),
+                  ("GET", "/threads/t/events"), ("GET", "/unknown"), ("DELETE", "/threads/t")]
         with patch.object(server.APP, "call", side_effect=AssertionError("backend reached")):
             for method, path in routes:
                 for auth in (None, "Bearer " + secrets.token_urlsafe(48), "Basic " + self.token):
@@ -332,7 +333,8 @@ for line in sys.stdin:
                 self.assertFalse(child["secretInherited"])
                 self.assertEqual(["app-server", "--stdio",
                                   "-c", 'sandbox_mode="danger-full-access"',
-                                  "-c", 'approval_policy="never"'], child["args"])
+                              "-c", 'approval_policy="never"',
+                              "-c", 'features.default_mode_request_user_input=true'], child["args"])
             finally:
                 proc.terminate()
                 stdout, stderr = proc.communicate(timeout=10)

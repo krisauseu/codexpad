@@ -203,3 +203,21 @@ als Text angeboten. „Speichern“ lädt zunächst vollständig, öffnet dann A
 Storage Access Framework und schreibt ausschließlich an das gewählte Ziel.
 Keine zusätzlichen Storage-Berechtigungen. Details und echte Geräteabnahme:
 [verification-artifacts.md](../docs/verification-artifacts.md).
+
+## Rückfragen im laufenden Turn
+
+Offene `item/tool/requestUserInput`-Fragen erscheinen als eigene Karten im Chat:
+Freitext, Einzelauswahl und optional eigene Antwort. Sie kommen aus
+`thread.pendingRequests` in History/SSE-Snapshots und bleiben nach erneutem Öffnen
+sichtbar. Aufgelöste Karten verschwinden; alte IDs/Doppeltaps werden nicht erneut
+weitergeleitet. Bei unbestätigtem POST wird zuerst der Zustand abgeglichen, niemals
+automatisch nochmals gesendet. Der Composer kann bei `isBlocking=false` zusätzliche
+Nachrichten an denselben Turn schicken. Keine Approval-UI und keine Policyänderung.
+
+[Verifizierter 0.156.1-Vertrag, API und Tablet-Nachweis](../docs/verification-user-input.md).
+Opt-in-Gerätetest: `:app:assembleDebugAndroidTest
+-Pcodexpad.testRunner=dev.codexpad.UserInputTestRunner`. Er benötigt einen isolierten
+echten Server auf Loopback-Port 18766 und die app-private `files/input-test.json`
+mit `url`/temporärem `token`. Er verursacht zwei Modellturns und eine Ergebnisdatei;
+keine automatische Ausführung im normalen Build. Bestehende verschlüsselte
+Verbindungseinstellungen werden nach dem Test wiederhergestellt.

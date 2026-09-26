@@ -9,7 +9,9 @@ data class Message(val id: String, val type: String, val text: String, val activ
     val activityTerminal get() = completedEvent || activity?.status in setOf("completed", "failed", "declined", "interrupted")
     val isCompaction get() = type == "contextCompaction"
 }
-data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null) {
+data class Artifact(val id: String, val name: String, val mimeType: String, val size: Long)
+
+data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null, val artifacts: List<Artifact> = emptyList()) {
     val terminal get() = status in setOf("completed", "failed", "interrupted")
 }
 data class CodexThread(
@@ -39,12 +41,15 @@ object Wire {
         status = json.optString("status", "unknown"),
         items = json.optJSONArray("items")?.objects()?.map(::message).orEmpty(),
         error = json.optJSONObject("error")?.optionalText("message"),
+        artifacts = json.optJSONArray("artifacts")?.objects()?.map {
+            Artifact(it.getString("id"), it.getString("name"), it.getString("mimeType"), it.getLong("size"))
+        }.orEmpty(),
     )
     fun message(json: JSONObject): Message {
         val type = json.getString("type")
         val content = json.optJSONArray("content")?.objects().orEmpty()
         val text = when (type) {
-            "userMessage" -> content.filter { it.optString("type") == "text" }
+            "userMessage" -> content.filter { it.optString("type") == "text" && !it.optString("text").startsWith("[CodexPad results ") }
                 .joinToString("\n") { it.optString("text") }
             "agentMessage" -> json.optString("text")
             "contextCompaction" -> "Kontextzusammenfassung · die Gesprächshistorie bleibt erhalten"

@@ -192,7 +192,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
     state.error?.let { ErrorText(it) }
     // Capture the reader's intent while scrolling, before incoming content changes the layout.
     var followTail by remember { mutableStateOf(true) }
-    val tailIndex = turns.sumOf { 1 + it.items.size + if (it.error == null) 0 else 1 }
+    val tailIndex = turns.sumOf { 1 + it.items.size + it.artifacts.size + if (it.error == null) 0 else 1 }
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress to listState.canScrollForward }.collect { (scrolling, more) ->
             if (scrolling) followTail = !more
@@ -213,6 +213,9 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             items(turn.items, key = { "item:${turn.id}:${it.id}" }) { message ->
                     val live = state.timeline.live[turn.id]?.items?.any { it.id == message.id } == true
                     MessageCard(message, live && !turn.terminal, turn.terminal)
+            }
+            items(turn.artifacts, key = { "artifact:${turn.id}:${it.id}" }) { artifact ->
+                ArtifactCard(artifact, vm.threadId.orEmpty(), vm)
             }
             turn.error?.let { error -> item(key = "error:${turn.id}") { ErrorText(error) } }
         }

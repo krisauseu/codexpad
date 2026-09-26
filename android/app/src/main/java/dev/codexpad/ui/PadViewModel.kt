@@ -54,6 +54,20 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         private set
 
 
+    suspend fun downloadArtifact(thread: String, artifact: Artifact): java.io.File {
+        val selectedApi = api
+        return withContext(Dispatchers.IO) {
+            val folder = java.io.File(getApplication<Application>().cacheDir, "artifacts").apply { mkdirs() }
+            // Keep grants usable for a day; clean only expired files, never an active download.
+            folder.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 86_400_000 }?.forEach { it.deleteRecursively() }
+            val directory = java.io.File(folder, java.util.UUID.randomUUID().toString()).apply { mkdirs() }
+            val name = artifact.name.substringAfterLast('/').substringAfterLast('\\').take(180)
+            val target = java.io.File(directory, name.takeUnless { it.isBlank() || it == "." || it == ".." } ?: "download")
+            selectedApi.downloadArtifact(thread, artifact, target)
+            target
+        }
+    }
+
     fun openSettings() {
         if (ready && !creating && !sending) {
             listing?.cancel()

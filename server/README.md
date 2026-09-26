@@ -106,3 +106,38 @@ Löschmechanismus und dauerhafte Bildvorschauen sind noch nicht implementiert.
 64 KiB pro Datei angenommen. Sie müssen gültiges UTF-8 ohne NUL-Zeichen enthalten.
 Der Server liest sie direkt und gibt Dateiname und Inhalt als gekennzeichnete
 `text`-Inputs an denselben Turn weiter. Andere Dateitypen bleiben abgewiesen.
+
+## Ergebnisdateien (v1)
+
+`GET /threads/{threadId}/history` und der SSE-Snapshot ergänzen jeden terminalen
+Turn um `artifacts: [{id, name, mimeType, size, turnId}]`. Pfade bleiben intern.
+`GET /threads/{threadId}/artifacts/{artifactId}` liefert mit demselben Bearer-Token
+Dateibytes, Content-Type, Content-Length und UTF-8 Content-Disposition; keine
+Download-URLs mit Token, keine Redirects. Maximal **64 MiB pro Datei**, 128 Kandidaten
+pro Turn. PDF, PNG, JPEG, WebP sowie UTF-8 TXT/Markdown; Endung und Signatur bzw.
+Textinhalt werden gemeinsam geprüft. Keine vollständige Formatvalidierung.
+
+Erkennung: erfolgreiche strukturierte `fileChange`-Items (inklusive Move-Ziel).
+Codex 0.156.1 meldet Shell-/Python-Dateiausgaben dagegen nicht als `fileChange`.
+Deshalb ergänzt der Adapter jeden neuen Turn um einen separaten Text-Input, der
+Ergebnisdateien ausdrücklich nach `codexpad-results/<Thread-Hash>/<Zufalls-ID>/`
+im aktuellen Workspace bestellt. Die exakte Anweisung bleibt in der Codex-History;
+sie ordnet diesen flachen Ordner dauerhaft dem Turn zu. Keine Auswertung von
+Agentenprosa oder Shell-Befehlen. Bestehende Shell-Ergebnisse außerhalb solcher
+Ordner werden nicht rückwirkend geraten. Hält Codex die Anweisung nicht ein und
+liefert auch kein `fileChange`, erscheint die Datei nicht als Artefakt.
+
+Artefakt-IDs sind stabile SHA-256-Identitäten aus Thread, Workspace, Turn und
+relativem Pfad. Sie sind keine Berechtigung: jeder Download prüft erneut Auth,
+Thread-CWD, History-Mitgliedschaft, Typ und Dateigrenzen. Keine frei wählbaren
+Downloadpfade. Descriptor-relative `O_NOFOLLOW`-Auflösung aller Pfadkomponenten;
+Symlinks, Hardlinks, Nicht-Dateien, versteckte Pfade sowie konservativ benannte
+Secret-/Konfigurationspfade bleiben ausgeschlossen. Ergebnisordner sind bewusst
+zum Veröffentlichen bestimmt; der Agent darf dort keine Secrets ablegen.
+
+Die Antwort beschreibt den aktuellen Dateiinhalt, kein historisches Dateiarchiv.
+Gelöschte/ungültige Dateien verschwinden beim History-Abgleich; Änderung am selben
+Pfad behält die ID. Keine Datenbank, kein Workspace-Vollscan, kein Watcher, keine
+zusätzliche Serverkonfiguration. Der normale Reconciliation-Pfad liefert die Karten
+auch nach Reconnect und Serverneustart. Android öffnet über begrenzten App-Cache
+und FileProvider-Lesegrant; bewusstes Speichern nutzt ACTION_CREATE_DOCUMENT.

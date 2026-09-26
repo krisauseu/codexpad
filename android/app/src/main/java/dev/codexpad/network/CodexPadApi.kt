@@ -92,6 +92,30 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         return Wire.turn(json(turnRequest).getJSONObject("turn"))
     }
 
+    suspend fun downloadArtifact(threadId: String, artifact: Artifact, target: java.io.File) = withContext(Dispatchers.IO) {
+        try {
+            client.newCall(request("threads", threadId, "artifacts", artifact.id)).await().use { response ->
+                if (!response.isSuccessful) throw ApiException(response.code, httpErrorMessage(response.code))
+                val body = response.body ?: throw IOException("Leere Datei")
+                val limit = 64L * 1024 * 1024
+                if (body.contentLength() !in 1..limit || response.header("Content-Type") != artifact.mimeType)
+                    throw IOException("Ungültige Datei")
+                body.byteStream().use { input -> target.outputStream().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > limit) throw IOException("Datei zu groß")
+                        output.write(buffer, 0, count)
+                    }
+                    if (total != body.contentLength()) throw IOException("Unvollständige Datei")
+                } }
+            }
+        } catch (error: Exception) { target.delete(); throw error }
+    }
+
     override suspend fun compactThread(threadId: String) {
         json(request("threads", threadId, "compact", body = JSONObject()))
     }

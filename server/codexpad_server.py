@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Authenticated, loopback-only single-user CodexPad API. Standard library only."""
 
+import itertools
+import copy
+import stat
+import secrets
 import hashlib
 import hmac
 from email import policy
@@ -17,7 +21,7 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 
 ROOT = Path(os.environ.get("CODEXPAD_WORKSPACE_ROOT", "~/projects")).expanduser().resolve()
@@ -235,6 +239,136 @@ def save_images(images):
         raise
 
 
+# Result discovery is derived from durable Codex history, never agent prose.
+MAX_ARTIFACT = 64 * 1024 * 1024
+RESULT_DIR = "codexpad-results"
+RESULT_TYPES = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".md": "text/markdown"}
+
+
+def result_folder(thread_id, nonce):
+    return f"{RESULT_DIR}/{hashlib.sha256(thread_id.encode()).hexdigest()[:32]}/{nonce}"
+
+
+def result_instruction(thread_id, nonce):
+    return ("[CodexPad results " + nonce + "]\n"
+            "Save final downloadable PDF, PNG, JPEG, WebP, TXT or Markdown results in " +
+            result_folder(thread_id, nonce) + "/ (create it if needed, flat files only). "
+            "This folder publishes results to the user. Never place credentials, secrets or server configuration there.")
+
+
+def result_path(cwd, value):
+    if not isinstance(value, str) or not value or "\\" in value:
+        return None
+    path = Path(value)
+    if path.is_absolute():
+        try:
+            path = path.relative_to(cwd)
+        except ValueError:
+            return None
+    # Explicit allowlist, including conservative exclusion of configuration/secret paths.
+    if any(p in (".", "..") or p.startswith(".") or
+           re.search(r"(?i)(secret|credential|password|token|config|^deploy$|^server$)", p)
+           for p in path.parts):
+        return None
+    if path.suffix.lower() not in RESULT_TYPES or len(path.name) > 180 or any(ord(c) < 32 for c in str(path)):
+        return None
+    return path
+
+
+def read_result(cwd, relative):
+    """Descriptor-relative no-follow walk closes symlink swap races, including parents.
+    Reject hardlinks, devices and FIFOs; never open a freely supplied host path.
+    """
+    fd = os.open(cwd, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in relative.parts[:-1]:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        child = os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
+        with os.fdopen(child, "rb") as source:
+            info = os.fstat(source.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 0 < info.st_size <= MAX_ARTIFACT:
+                raise ValueError("Unavailable result")
+            data = source.read(MAX_ARTIFACT + 1)
+            if len(data) != info.st_size or len(data) > MAX_ARTIFACT:
+                raise ValueError("Result changed while reading")
+    finally:
+        os.close(fd)
+    suffix = relative.suffix.lower()
+    mime = RESULT_TYPES[suffix]
+    if suffix in (".txt", ".md"):
+        text = data.decode("utf-8")
+        if any(ord(c) < 32 and c not in "\n\r\t" for c in text):
+            raise ValueError("Invalid text")
+    elif suffix == ".pdf":
+        if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
+            raise ValueError("Invalid PDF")
+    elif image_type(data)[0] != mime:
+        raise ValueError("Invalid image")
+    return data, mime
+
+
+def result_candidates(current, turn):
+    cwd = Path(current["cwd"])
+    candidates = set()
+    for item in turn.get("items", []):
+        if item.get("type") == "fileChange" and item.get("status") == "completed":
+            for change in item.get("changes", []):
+                kind = change.get("kind") or {}
+                if kind.get("type") != "delete":
+                    path = result_path(cwd, kind.get("move_path") or change.get("path"))
+                    if path:
+                        candidates.add(path)
+        if item.get("type") == "userMessage":
+            for content in item.get("content", []):
+                text = content.get("text", "")
+                match = re.match(r"^\[CodexPad results ([a-f0-9]{32})\]\n", text)
+                if not match or text != result_instruction(current["id"], match[1]):
+                    continue
+                folder = Path(result_folder(current["id"], match[1]))
+                # Do not even list through symlinked parents.
+                fd = None
+                try:
+                    fd = os.open(cwd, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                    for part in folder.parts:
+                        child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                        os.close(fd)
+                        fd = child
+                    with os.scandir(fd) as entries:
+                        for entry in itertools.islice(entries, 128):
+                            path = result_path(cwd, str(folder / entry.name))
+                            if path:
+                                candidates.add(path)
+                except OSError:
+                    pass
+                finally:
+                    if fd is not None:
+                        os.close(fd)
+    return sorted(candidates)[:128]
+
+
+def artifact_id(current, turn, path):
+    return hashlib.sha256(json.dumps([current["id"], current["cwd"], turn["id"], str(path)]).encode()).hexdigest()
+
+
+def with_artifacts(current):
+    current = copy.deepcopy(current)
+    for turn in current.get("turns", []):
+        turn["artifacts"] = []
+        if turn.get("status") not in ("completed", "failed", "interrupted"):
+            continue
+        for path in result_candidates(current, turn):
+            try:
+                data, mime = read_result(Path(current["cwd"]), path)
+            except (OSError, ValueError, ApiError):
+                continue
+            turn["artifacts"].append({"id": artifact_id(current, turn, path), "name": path.name,
+                                      "mimeType": mime, "size": len(data), "turnId": turn["id"]})
+    return current
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -378,7 +512,32 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 2 and method == "GET":
                 return 200, {"thread": thread(thread_id)}
             if len(parts) == 3 and parts[2] == "history" and method == "GET":
-                return 200, {"thread": thread(thread_id, True)}
+                return 200, {"thread": with_artifacts(thread(thread_id, True))}
+            if len(parts) == 4 and parts[2] == "artifacts" and method == "GET":
+                if not re.fullmatch(r"[a-f0-9]{64}", parts[3]):
+                    raise ApiError(404, "Unknown artifact")
+                current = thread(thread_id, True, allow_fresh=False)
+                for turn in current.get("turns", []):
+                    if turn.get("status") not in ("completed", "failed", "interrupted"):
+                        continue
+                    for path in result_candidates(current, turn):
+                        if artifact_id(current, turn, path) != parts[3]:
+                            continue
+                        try:
+                            data, mime = read_result(Path(current["cwd"]), path)
+                        except (OSError, ValueError, ApiError):
+                            raise ApiError(404, "Artifact unavailable") from None
+                        self.send_response(200)
+                        self.send_header("Content-Type", mime)
+                        self.send_header("Content-Length", str(len(data)))
+                        self.send_header("Content-Disposition", "attachment; filename=\"download" + path.suffix.lower() +
+                                         "\"; filename*=UTF-8''" + quote(path.name, safe=""))
+                        self.send_header("Cache-Control", "no-store")
+                        self.send_header("X-Content-Type-Options", "nosniff")
+                        self.end_headers()
+                        self.wfile.write(data)
+                        return None
+                raise ApiError(404, "Unknown artifact")
             if len(parts) == 3 and parts[2] == "compact" and method == "POST":
                 current = thread(thread_id, True, allow_fresh=False)
                 if self.read_json():
@@ -420,6 +579,7 @@ class Handler(BaseHTTPRequestHandler):
                     {"type": "text", "text": f"Dateianhang: {name}\n-----\n{content}\n-----"}
                     for name, content in text_files] + [
                     {"type": "localImage", "path": path} for path in paths]
+                inputs.append({"type": "text", "text": result_instruction(thread_id, secrets.token_hex(16))})
                 result = APP.call("turn/start", {"threadId": thread_id,
                                                   "approvalPolicy": "never",
                                                   "sandboxPolicy": {"type": "dangerFullAccess"},
@@ -436,7 +596,7 @@ class Handler(BaseHTTPRequestHandler):
                     except ApiError:
                         if thread_id not in APP.fresh:
                             raise
-                    snapshot = thread(thread_id, True)
+                    snapshot = with_artifacts(thread(thread_id, True))
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream; charset=utf-8")
                     self.send_header("Cache-Control", "no-cache")

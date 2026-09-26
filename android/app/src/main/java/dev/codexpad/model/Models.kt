@@ -30,7 +30,7 @@ object Wire {
     fun threadEnvelope(json: JSONObject) = thread(json.getJSONObject("thread"))
     fun thread(json: JSONObject) = CodexThread(
         id = json.getString("id"),
-        preview = json.optionalText("preview").orEmpty(),
+        preview = json.optionalText("preview").orEmpty().substringBefore("[CodexPad results ").trimEnd(),
         status = json.optJSONObject("status")?.optString("type", "unknown") ?: "unknown",
         model = json.optionalText("model"),
         reasoningEffort = json.optionalText("reasoningEffort"),

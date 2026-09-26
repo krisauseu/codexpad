@@ -193,3 +193,13 @@ neues Usage-Event einschließlich Resume-Replay tut das. Reroutes werden pro Tur
 als Laufzeitumleitung angezeigt und verändern Modell/Effort des Threads nicht.
 
 [Prüfnachweis und Grenzen dieses Slices](../docs/verification-model-context.md).
+
+## Ergebnisdateien
+
+Terminale Turns können Datei-Karten für PDF, PNG/JPEG/WebP und TXT/Markdown zeigen.
+„Öffnen“ lädt authentifiziert in den privaten Cache und übergibt eine FileProvider-
+URI mit temporärem Lesegrant an die Android-App-Auswahl. Markdown wird zum Öffnen
+als Text angeboten. „Speichern“ lädt zunächst vollständig, öffnet dann Androids
+Storage Access Framework und schreibt ausschließlich an das gewählte Ziel.
+Keine zusätzlichen Storage-Berechtigungen. Details und echte Geräteabnahme:
+[verification-artifacts.md](../docs/verification-artifacts.md).

@@ -82,7 +82,7 @@ Maßgeblich ist `server/codexpad_server.py`, nicht ein hypothetisches REST-Schem
 | `POST /workspaces/:id/threads` | Request `{}`, Response `thread` |
 | `GET /threads/:id` | `thread`, insbesondere ID und Status |
 | `GET /threads/:id/history` | `thread.turns[]`: `id`, `status`, `error.message`, `items` |
-| `POST /threads/:id/turns` | Request `{"message":"...","model":"optional","effort":"optional"}`, Response `turn` |
+| `POST /threads/:id/turns` | JSON für Text oder Multipart mit `message`, optional `model`/`effort`, `image`/`file`; Response `turn` |
 | `POST /threads/:id/turns/:turnId/interrupt` | Request `{}`, HTTP 202 bestätigt nur RPC; Ende aus SSE/History |
 | `GET /threads/:id/events` | SSE `snapshot` mit `thread`; SSE `event` mit `method`, `params` |
 
@@ -120,7 +120,7 @@ feststellt. Ein neuerer Turn wird niemals als Ersatz für den ursprünglichen ge
 
 - Tablet-Lauf gegen lokale Vertragsfixtures und [echter Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
 - Nur Nutzung bei offener App, keine Push-/Hintergrundzusage. Kein Terminal, Dateimanager, Git-UI, Editor, Approval-UI (die vorhandene API besitzt diese Endpunkte nicht).
-- Textdarstellung ohne Markdown-Engine, Attachments nur als Typmarker, Tool-Items nur Typ/Status.
+- Textdarstellung ohne Markdown-Engine; Bilder als Vorschau im Composer und Typmarker in der History, noch ohne dauerhafte History-Bildvorschau. Tool-Items nur Typ/Status.
 - Vollständige Legacy-History ohne Pagination; für sehr lange Unterhaltungen noch nicht optimiert.
 - Vorschau plus ID statt eigenem Threadtitel. Titel/Renaming ist ein UX-Folgepunkt, kein neues Serverfeld.
 - Konkretes Referenztablet, Hardwaretastatur, TalkBack, sehr große Schrift und Split-Screen müssen am Gerät geprüft werden.

@@ -18,6 +18,8 @@ import org.json.JSONObject
 import kotlin.coroutines.resumeWithException
 
 class ApiException(val status: Int, message: String) : IOException(message)
+data class UploadImage(val name: String, val mimeType: String, val bytes: ByteArray)
+data class UploadText(val name: String, val mimeType: String, val bytes: ByteArray)
 
 interface CodexPadService {
     suspend fun models(): List<CatalogModel>
@@ -67,10 +69,28 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
         json(request("workspaces", workspaceId, "threads", body = JSONObject())))
     override suspend fun thread(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId)))
     override suspend fun history(threadId: String) = Wire.threadEnvelope(json(request("threads", threadId, "history")))
-    override suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?) = Wire.turn(json(
-        request("threads", threadId, "turns", body = JSONObject().put("message", message).apply {
-            model?.let { put("model", it) }; effort?.let { put("effort", it) }
-        })).getJSONObject("turn"))
+    override suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?) =
+        startTurn(threadId, message, model, effort, emptyList(), emptyList())
+
+    suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?,
+        images: List<UploadImage>, files: List<UploadText> = emptyList()): Turn {
+        val turnRequest = if (images.isEmpty() && files.isEmpty()) request("threads", threadId, "turns",
+            body = JSONObject().put("message", message).apply {
+                model?.let { put("model", it) }; effort?.let { put("effort", it) }
+            }) else {
+            val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("message", message).apply {
+                    model?.let { addFormDataPart("model", it) }
+                    effort?.let { addFormDataPart("effort", it) }
+                    images.forEach { image -> addFormDataPart("image", image.name,
+                        image.bytes.toRequestBody(image.mimeType.toMediaType())) }
+                    files.forEach { file -> addFormDataPart("file", file.name,
+                        file.bytes.toRequestBody(file.mimeType.toMediaType())) }
+                }.build()
+            request("threads", threadId, "turns").newBuilder().post(body).build()
+        }
+        return Wire.turn(json(turnRequest).getJSONObject("turn"))
+    }
 
     override suspend fun compactThread(threadId: String) {
         json(request("threads", threadId, "compact", body = JSONObject()))

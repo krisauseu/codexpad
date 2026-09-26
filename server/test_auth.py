@@ -26,6 +26,7 @@ class AuthenticationTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         server.ROOT = Path(self.directory.name).resolve()
+        server.UPLOAD_ROOT = server.ROOT / "uploads"
         (server.ROOT / "demo space-ä").mkdir()
         server.APP = fixture.FixtureBackend(server.ROOT)
         self.token = secrets.token_urlsafe(48)
@@ -108,6 +109,45 @@ class AuthenticationTest(unittest.TestCase):
                 self.assertFalse(any(c.args[0] in ("turn/start", "thread/resume") for c in calls.call_args_list))
         with patch.object(server.APP, "call", return_value={"data": [], "nextCursor": "loop"}):
             self.assertEqual(502, self.request("/models", headers=headers)[0])
+
+    def test_multipart_image_reaches_turn_as_private_local_image(self):
+        boundary = "codexpad-test-boundary"
+        png = b"\x89PNG\r\n\x1a\n" + b"fixture"
+        def part(name, value, filename=None, mime=None):
+            heading = f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"'
+            if filename: heading += f'; filename="{filename}"'
+            heading += "\r\n"
+            if mime: heading += f"Content-Type: {mime}\r\n"
+            return heading.encode() + b"\r\n" + value + b"\r\n"
+        body = part("message", "Was ist zu sehen?".encode()) + part("image", png,
+            "../../private.png", "image/png") + f"--{boundary}--\r\n".encode()
+        headers = {"Authorization": "Bearer " + self.token,
+                   "Content-Type": f"multipart/form-data; boundary={boundary}"}
+        original = server.APP.call
+        captured = []
+        def rpc(method, params, **kwargs):
+            if method == "turn/start":
+                captured.append(params["input"])
+                return {"turn": {"id": "u", "status": "inProgress", "items": []}}
+            return original(method, params, **kwargs)
+        with patch.object(server.APP, "call", side_effect=rpc):
+            self.assertEqual(202, self.request("/threads/fixture-thread-1/turns", "POST", headers, body)[0])
+            inputs = captured[0]
+            self.assertEqual("Was ist zu sehen?", inputs[0]["text"])
+            path = Path(inputs[1]["path"])
+            self.assertEqual(server.UPLOAD_ROOT, path.parent)
+            self.assertEqual(png, path.read_bytes())
+            self.assertNotIn("private", path.name)
+            bad = body.replace(b"image/png", b"image/jpeg")
+            self.assertEqual(415, self.request("/threads/fixture-thread-1/turns", "POST", headers, bad)[0])
+            self.assertEqual(1, len(captured))
+            text_body = part("message", b"") + part("file", b"CODEXPAD-FILE-OK",
+                "../note.md", "text/markdown") + f"--{boundary}--\r\n".encode()
+            self.assertEqual(202, self.request("/threads/fixture-thread-1/turns", "POST", headers, text_body)[0])
+            self.assertIn("Dateianhang: note.md", captured[-1][0]["text"])
+            self.assertIn("CODEXPAD-FILE-OK", captured[-1][0]["text"])
+            invalid = text_body.replace(b"CODEXPAD-FILE-OK", b"\xff")
+            self.assertEqual(415, self.request("/threads/fixture-thread-1/turns", "POST", headers, invalid)[0])
 
     def test_compact_narrow_rpc_boundaries_and_no_retry(self):
         current = server.APP.threads["fixture-thread-1"]

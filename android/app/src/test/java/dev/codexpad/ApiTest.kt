@@ -13,6 +13,25 @@ import java.util.concurrent.TimeUnit
 
 class ApiTest {
     private val token = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
+    @Test fun multipartTurnCarriesRealBytesAndAuth() = runBlocking {
+        MockWebServer().use { server ->
+            val api = CodexPadApi(server.url("/").toString(), token)
+            server.enqueue(MockResponse().setResponseCode(202)
+                .setBody("""{"turn":{"id":"u","status":"inProgress","items":[]}}"""))
+            api.startTurn("t", "Frage", null, null,
+                listOf(UploadImage("screen.png", "image/png", byteArrayOf(1, 2, 3))),
+                listOf(UploadText("note.md", "text/markdown", "Inhalt".toByteArray())))
+            val request = server.takeRequest()
+            assertEquals("Bearer $token", request.getHeader("Authorization"))
+            assertTrue(request.getHeader("Content-Type")!!.startsWith("multipart/form-data;"))
+            val body = request.body.readByteArray().toString(Charsets.ISO_8859_1)
+            assertTrue(body.contains("name=\"image\"; filename=\"screen.png\""))
+            assertTrue(body.contains("name=\"file\"; filename=\"note.md\""))
+            assertTrue(body.contains("Frage"))
+            assertTrue(body.contains("Inhalt"))
+            assertTrue(body.contains("\u0001\u0002\u0003"))
+        }
+    }
     @Test fun endpointsAndBodiesMatchServerContract() = runBlocking {
         MockWebServer().use { server ->
             val api = CodexPadApi(server.url("/").toString(), token)

@@ -1,6 +1,11 @@
 package dev.codexpad.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,6 +37,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.codexpad.data.ThreadSession
 import dev.codexpad.model.Message
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,17 +260,64 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
     }
     val count = vm.draft.codePointCount(0, vm.draft.length)
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        vm.addAttachments(uris)
+    }
+    vm.attachmentError?.let { ErrorText(it) }
+    if (vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            vm.images.forEach { image ->
+                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
+                    Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ImageThumbnail(image.uri)
+                        Text(image.name.take(18), style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.widthIn(max = 90.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        TextButton(onClick = { vm.removeImage(image.uri) }, enabled = !vm.sending) { Text("×") }
+                    }
+                }
+            }
+            vm.textFiles.forEach { file ->
+                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
+                    Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("▤ ${file.name.take(24)}", style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        TextButton(onClick = { vm.removeText(file.uri) }, enabled = !vm.sending) { Text("×") }
+                    }
+                }
+            }
+        }
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(onClick = { picker.launch(arrayOf("image/png", "image/jpeg", "image/webp", "text/plain", "text/markdown")) },
+            enabled = !vm.sending && !vm.uncertain && (vm.images.size < 4 || vm.textFiles.size < 2),
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            modifier = Modifier.padding(bottom = 8.dp).semantics { contentDescription = "Datei anhängen" }) {
+            Text("+", style = MaterialTheme.typography.titleLarge)
+        }
         OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.weight(1f),
             label = { Text("Nachricht an Codex") }, minLines = 2, maxLines = 5,
             enabled = !vm.sending, isError = count > 4096,
             supportingText = { Text("$count / 4096 Zeichen") })
         Button(onClick = vm::send, modifier = Modifier.padding(bottom = 8.dp),
             enabled = state.connected && !state.timeline.busy && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
-                vm.draft.isNotBlank() && count <= 4096) {
+                (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= 4096) {
             Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy) "Turn läuft …" else "Senden")
         }
     }
+}
+
+@Composable
+private fun ImageThumbnail(uri: Uri) {
+    val resolver = LocalContext.current.contentResolver
+    val bitmap by produceState<android.graphics.Bitmap?>(null, uri) {
+        value = withContext(Dispatchers.IO) {
+            resolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, BitmapFactory.Options().apply { inSampleSize = 8 })
+            }
+        }
+    }
+    bitmap?.let { Image(it.asImageBitmap(), contentDescription = "Bildvorschau",
+        modifier = Modifier.size(48.dp), contentScale = ContentScale.Crop) }
 }
 
 @Composable
@@ -275,7 +334,9 @@ internal fun MessageCard(message: Message, live: Boolean, turnTerminal: Boolean 
             Text(if (user) "Du" else if (agent) "Codex" else if (message.isCompaction) "Kontextkomprimierung" else "Servereintrag", fontWeight = FontWeight.SemiBold)
             if (live && agent) Text("Live-Ausschnitt · bis zum History-Abgleich möglicherweise unvollständig",
                 style = MaterialTheme.typography.labelSmall)
-            SelectionContainer { Text(message.text, style = MaterialTheme.typography.bodyLarge) }
+            if (message.text.isNotBlank()) SelectionContainer { Text(message.text, style = MaterialTheme.typography.bodyLarge) }
+            if (message.images > 0) Text("▧ ${message.images} Bild${if (message.images == 1) "" else "er"} angehängt",
+                style = MaterialTheme.typography.labelMedium)
         }
     }
 }

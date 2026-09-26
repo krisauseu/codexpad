@@ -85,3 +85,24 @@ Katalogdefault ersetzt. Ohne Overrides wird kein Katalog benötigt.
 Overrides gehen ausschließlich an `turn/start`, nie an Resume oder Settings-RPCs.
 Der App Server entscheidet weiterhin über tatsächliche Verfügbarkeit und Anwendung;
 Thread-/History-Readback ist autoritativ. Usage bleibt beim vorhandenen SSE-Vertrag.
+
+## Bild- und Textdateien an Turns
+
+Reine Textnachrichten verwenden weiter JSON. Für Anhänge akzeptiert derselbe
+authentifizierte `POST /threads/{id}/turns` `multipart/form-data` mit `message`,
+optional `model`/`effort`, bis zu vier Teilen namens `image` und zwei Teilen namens
+`file`. Bilder: PNG, JPEG oder WebP, höchstens 5 MiB je Bild; Signatur und MIME
+müssen zusammenpassen. Der gesamte HTTP-Body ist auf 21 MiB begrenzt; Caddy lässt
+23 MB bis zu dieser Serverprüfung durch. Keine Clientpfade werden verwendet.
+
+Bilder liegen mit zufälligem Namen und Modus 0600 im privaten
+`CODEXPAD_UPLOAD_ROOT` (Default `~/uploads` des Dienstkontos). Der Server übergibt
+deren absoluten Pfad als `localImage` zusammen mit optionalem Text in **einem**
+`turn/start`. Unvollständige Schreibversuche werden entfernt. Angenommene Bilder
+bleiben erhalten, weil Codex die Pfade im Verlauf referenziert; ein verlaufsbewusster
+Löschmechanismus und dauerhafte Bildvorschauen sind noch nicht implementiert.
+
+`.txt` und `.md` werden mit MIME `text/plain` oder `text/markdown` und maximal
+64 KiB pro Datei angenommen. Sie müssen gültiges UTF-8 ohne NUL-Zeichen enthalten.
+Der Server liest sie direkt und gibt Dateiname und Inhalt als gekennzeichnete
+`text`-Inputs an denselben Turn weiter. Andere Dateitypen bleiben abgewiesen.

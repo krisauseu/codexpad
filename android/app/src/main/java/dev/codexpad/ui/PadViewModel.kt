@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import android.app.Application
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.codexpad.BuildConfig
@@ -12,6 +14,9 @@ import dev.codexpad.data.ThreadSession
 import dev.codexpad.data.Compaction
 import dev.codexpad.model.*
 import dev.codexpad.network.CodexPadApi
+import dev.codexpad.network.UploadImage
+import dev.codexpad.network.UploadText
+import dev.codexpad.network.ApiException
 import dev.codexpad.network.connectionError
 import dev.codexpad.settings.*
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +26,13 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
+import java.nio.charset.StandardCharsets
+
+data class PendingImage(val uri: Uri, val name: String, val mimeType: String)
+data class PendingText(val uri: Uri, val name: String, val mimeType: String)
 
 class PadViewModel(application: Application, private val saved: SavedStateHandle) : AndroidViewModel(application) {
     private val store = SettingsStore(application)
@@ -146,6 +158,12 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         private set
     var draft by mutableStateOf(saved.get<String>("draft:${threadId}").orEmpty())
         private set
+    var images by mutableStateOf(emptyList<PendingImage>())
+        private set
+    var textFiles by mutableStateOf(emptyList<PendingText>())
+        private set
+    var attachmentError by mutableStateOf<String?>(null)
+        private set
     var uncertain by mutableStateOf(saved.get<Boolean>("uncertain:${threadId}") ?: false)
         private set
     var createUncertain by mutableStateOf(saved.get<Boolean>("create:${workspace?.id}") ?: false)
@@ -224,12 +242,14 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         saved["threadId"] = id
         session = newSession(id)
         draft = saved.get<String>("draft:$id").orEmpty()
+        images = emptyList(); textFiles = emptyList(); attachmentError = null
         uncertain = saved["uncertain:$id"] ?: false
         sendError = null
     }
 
     fun back() {
         if (threadId != null) {
+            images = emptyList(); textFiles = emptyList(); attachmentError = null
             threadId = null
             saved["threadId"] = null
             session = null
@@ -283,6 +303,62 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     fun editDraft(text: String) {
         draft = text
         saved["draft:${threadId}"] = text
+    }
+
+    fun addAttachments(uris: List<Uri>) {
+        if (sending || uncertain) return
+        val resolver = getApplication<Application>().contentResolver
+        var rejected = false
+        uris.forEach { uri ->
+            val mime = resolver.getType(uri)
+            val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                if (it.moveToFirst()) it.getString(0) else null
+            } ?: "Bild"
+            when {
+                mime in setOf("image/png", "image/jpeg", "image/webp") && images.size < 4 ->
+                    images = images + PendingImage(uri, name, mime!!)
+                mime in setOf("text/plain", "text/markdown") && name.lowercase().endsWithAny(".txt", ".md") && textFiles.size < 2 ->
+                    textFiles = textFiles + PendingText(uri, name, mime!!)
+                else -> rejected = true
+            }
+        }
+        attachmentError = if (rejected) "Erlaubt: bis zu vier Bilder und zwei .txt/.md-Dateien." else null
+    }
+
+    fun removeImage(uri: Uri) { if (!sending) images = images.filterNot { it.uri == uri } }
+    fun removeText(uri: Uri) { if (!sending) textFiles = textFiles.filterNot { it.uri == uri } }
+
+    private fun String.endsWithAny(vararg suffixes: String) = suffixes.any { endsWith(it) }
+
+    private fun readLimited(uri: Uri, limit: Int): ByteArray {
+        val stream = getApplication<Application>().contentResolver.openInputStream(uri)
+            ?: throw IllegalArgumentException("Datei nicht lesbar")
+        return stream.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (output.size() + count > limit) throw IllegalArgumentException("Datei ist zu groß.")
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        }
+    }
+
+    private fun readImage(image: PendingImage): UploadImage {
+        val bytes = readLimited(image.uri, 5 * 1024 * 1024)
+        if (bytes.isEmpty()) throw IllegalArgumentException("Bilddatei ist leer")
+        return UploadImage(image.name, image.mimeType, bytes)
+    }
+
+    private fun readText(file: PendingText): UploadText {
+        val bytes = readLimited(file.uri, 64 * 1024)
+        if (bytes.isEmpty()) throw IllegalArgumentException("Textdatei ist leer")
+        val text = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
+        if ('\u0000' in text) throw IllegalArgumentException("Textdatei enthält ungültige Zeichen")
+        return UploadText(file.name, file.mimeType, bytes)
     }
 
     fun reviewedUnknown() {
@@ -343,27 +419,36 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         val id = threadId ?: return
         val target = session ?: return
         val message = draft.trim()
+        val selectedImages = images
+        val selectedTexts = textFiles
         val model = nextModel
         val effort = nextEffort
         if (sending || uncertain || target.state.value.compaction?.pending == true || target.state.value.interruptTurnId != null ||
             !target.state.value.connected || target.state.value.timeline.busy ||
-            message.isEmpty() || message.codePointCount(0, message.length) > 4096) return
-        // Persist before sending. Process death must not turn an unacknowledged POST into a retry.
-        saved["uncertain:$id"] = true
+            (message.isEmpty() && selectedImages.isEmpty() && selectedTexts.isEmpty()) || message.codePointCount(0, message.length) > 4096) return
         sending = true
         sendError = null
         viewModelScope.launch {
+            var posting = false
             try {
-                val turn = api.startTurn(id, message, model, effort)
+                val uploads = withContext(Dispatchers.IO) { selectedImages.map(::readImage) }
+                val files = withContext(Dispatchers.IO) { selectedTexts.map(::readText) }
+                // Persist before POST. An unacknowledged mutation is never retried automatically.
+                saved["uncertain:$id"] = true
+                posting = true
+                val turn = api.startTurn(id, message, model, effort, uploads, files)
                 target.acknowledge(turn)
                 saved["uncertain:$id"] = false
                 saved["draft:$id"] = ""
-                if (threadId == id) { draft = ""; uncertain = false; nextModel = null; nextEffort = null }
+                if (threadId == id) { draft = ""; images = emptyList(); textFiles = emptyList(); uncertain = false; nextModel = null; nextEffort = null }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 if (threadId == id) {
-                    uncertain = true
-                    sendError = "Ausgang unbekannt: ${connectionError(failure)}"
+                    if (posting && failure is ApiException && failure.status in setOf(400, 413, 415)) {
+                        saved["uncertain:$id"] = false
+                        attachmentError = "Datei abgelehnt (HTTP ${failure.status}). Typ und Größe prüfen."
+                    } else if (posting) { uncertain = true; sendError = "Ausgang unbekannt: ${connectionError(failure)}" }
+                    else attachmentError = failure.message ?: "Bild konnte nicht gelesen werden."
                 }
             } finally { sending = false }
             // A read failure after a confirmed POST never changes the mutation's known outcome.

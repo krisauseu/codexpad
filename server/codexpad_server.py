@@ -3,6 +3,8 @@
 
 import hashlib
 import hmac
+from email import policy
+from email.parser import BytesParser
 import re
 import signal
 import json
@@ -11,6 +13,7 @@ import platform
 import queue
 import subprocess
 import sys
+import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,6 +22,10 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(os.environ.get("CODEXPAD_WORKSPACE_ROOT", "~/projects")).expanduser().resolve()
 PORT = int(os.environ.get("CODEXPAD_PORT", "8765"))
+UPLOAD_ROOT = Path(os.environ.get("CODEXPAD_UPLOAD_ROOT", "~/uploads")).expanduser()
+MAX_IMAGE = 5 * 1024 * 1024
+MAX_BODY = 21 * 1024 * 1024
+MAX_TEXT_FILE = 64 * 1024
 
 
 class ApiError(Exception):
@@ -202,6 +209,32 @@ def turn_overrides(payload, current):
     return overrides
 
 
+def image_type(data):
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png", ".png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", ".jpg"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", ".webp"
+    raise ApiError(415, "Only PNG, JPEG and WebP images are supported")
+
+
+def save_images(images):
+    UPLOAD_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+    paths = []
+    try:
+        for data, suffix in images:
+            with tempfile.NamedTemporaryFile(prefix="image-", suffix=suffix, dir=UPLOAD_ROOT,
+                                             delete=False) as output:
+                output.write(data)
+                paths.append(output.name)
+        return paths
+    except Exception:
+        for path in paths:
+            Path(path).unlink(missing_ok=True)
+        raise
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -254,6 +287,61 @@ class Handler(BaseHTTPRequestHandler):
             return data
         except (ValueError, json.JSONDecodeError):
             raise ApiError(400, "Expected JSON object of at most 16 KiB")
+
+    def read_turn(self):
+        content_type = self.headers.get("Content-Type", "")
+        if not content_type or content_type.startswith("application/json"):
+            return self.read_json(), [], []
+        if not content_type.startswith("multipart/form-data;"):
+            raise ApiError(415, "Expected JSON or multipart/form-data")
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            size = 0
+        if size < 1 or size > MAX_BODY or self.headers.get("Transfer-Encoding"):
+            raise ApiError(413, "Upload exceeds 21 MiB")
+        try:
+            envelope = BytesParser(policy=policy.default).parsebytes(
+                b"MIME-Version: 1.0\r\nContent-Type: " + content_type.encode("ascii") +
+                b"\r\n\r\n" + self.rfile.read(size))
+        except (UnicodeEncodeError, ValueError):
+            raise ApiError(400, "Invalid multipart body") from None
+        if not envelope.is_multipart() or envelope.defects:
+            raise ApiError(400, "Invalid multipart body")
+        fields, images, text_files = {}, [], []
+        for part in envelope.iter_parts():
+            if part.get_content_disposition() != "form-data" or part.defects:
+                raise ApiError(400, "Invalid multipart part")
+            name = part.get_param("name", header="content-disposition")
+            data = part.get_payload(decode=True)
+            if name in ("message", "model", "effort") and name not in fields and len(data) <= 4096:
+                try:
+                    fields[name] = data.decode("utf-8")
+                except UnicodeDecodeError:
+                    raise ApiError(400, "Invalid UTF-8 field") from None
+            elif name == "image" and len(images) < 4 and 0 < len(data) <= MAX_IMAGE:
+                detected, suffix = image_type(data)
+                if part.get_content_type() != detected:
+                    raise ApiError(415, "Image MIME type does not match content")
+                images.append((data, suffix))
+            elif name == "file" and len(text_files) < 2 and 0 < len(data) <= MAX_TEXT_FILE:
+                raw_name = part.get_filename() or ""
+                filename = Path(raw_name.replace("\\", "/")).name
+                if (filename.lower().endswith((".txt", ".md")) and
+                        len(filename) <= 100 and not any(ord(char) < 32 for char in filename) and
+                        part.get_content_type() in ("text/plain", "text/markdown")):
+                    try:
+                        content = data.decode("utf-8")
+                    except UnicodeDecodeError:
+                        raise ApiError(415, "Text files must be UTF-8") from None
+                    if "\x00" in content:
+                        raise ApiError(415, "Invalid text file")
+                    text_files.append((filename, content))
+                else:
+                    raise ApiError(415, "Only UTF-8 .txt and .md files are supported")
+            else:
+                raise ApiError(400, "Unsupported or oversized multipart part")
+        return fields, images, text_files
 
     def route(self, method):
         parts = [unquote(x) for x in urlsplit(self.path).path.split("/") if x]
@@ -316,10 +404,10 @@ class Handler(BaseHTTPRequestHandler):
                 return 202, {}
             if len(parts) == 3 and parts[2] == "turns" and method == "POST":
                 current = thread(thread_id)
-                payload = self.read_json()
+                payload, images, text_files = self.read_turn()
                 message = payload.get("message")
-                if not isinstance(message, str) or not message.strip() or len(message) > 4096:
-                    raise ApiError(400, "message must contain 1 to 4096 characters")
+                if not isinstance(message, str) or len(message) > 4096 or (not message.strip() and not images and not text_files):
+                    raise ApiError(400, "message or attachment required; text limit is 4096 characters")
                 overrides = turn_overrides(payload, current)
                 # Resume is idempotent for a persisted thread; a new turn is not.
                 try:
@@ -327,10 +415,15 @@ class Handler(BaseHTTPRequestHandler):
                 except ApiError:
                     if thread_id not in APP.fresh:
                         raise
+                paths = save_images(images) if images else []
+                inputs = ([{"type": "text", "text": message}] if message.strip() else []) + [
+                    {"type": "text", "text": f"Dateianhang: {name}\n-----\n{content}\n-----"}
+                    for name, content in text_files] + [
+                    {"type": "localImage", "path": path} for path in paths]
                 result = APP.call("turn/start", {"threadId": thread_id,
                                                   "approvalPolicy": "never",
                                                   "sandboxPolicy": {"type": "dangerFullAccess"},
-                                                  "input": [{"type": "text", "text": message}], **overrides}, timeout=60)
+                                                  "input": inputs, **overrides}, timeout=60)
                 APP.fresh.pop(thread_id, None)
                 return 202, result
             if len(parts) == 3 and parts[2] == "events" and method == "GET":

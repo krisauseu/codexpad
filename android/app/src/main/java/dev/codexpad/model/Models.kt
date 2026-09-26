@@ -4,7 +4,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class Workspace(val id: String, val name: String)
-data class Message(val id: String, val type: String, val text: String, val activity: Activity? = null, val completedEvent: Boolean = false) {
+data class Message(val id: String, val type: String, val text: String, val activity: Activity? = null,
+    val completedEvent: Boolean = false, val images: Int = 0) {
     val activityTerminal get() = completedEvent || activity?.status in setOf("completed", "failed", "declined", "interrupted")
     val isCompaction get() = type == "contextCompaction"
 }
@@ -41,14 +42,15 @@ object Wire {
     )
     fun message(json: JSONObject): Message {
         val type = json.getString("type")
+        val content = json.optJSONArray("content")?.objects().orEmpty()
         val text = when (type) {
-            "userMessage" -> json.optJSONArray("content")?.objects()?.joinToString("\n") {
-                if (it.optString("type") == "text") it.optString("text") else "[${it.optString("type")}]"
-            }.orEmpty()
+            "userMessage" -> content.filter { it.optString("type") == "text" }
+                .joinToString("\n") { it.optString("text") }
             "agentMessage" -> json.optString("text")
             "contextCompaction" -> "Kontextzusammenfassung · die Gesprächshistorie bleibt erhalten"
             else -> "${type}: ${json.optionalText("status") ?: "Eintrag im Serververlauf"}"
         }
-        return Message(json.getString("id"), type, text, ActivityWire.parse(json))
+        return Message(json.getString("id"), type, text, ActivityWire.parse(json),
+            images = content.count { it.optString("type") in setOf("localImage", "image") })
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.codexpad.model.*
 import dev.codexpad.ui.MessageCard
+import dev.codexpad.ui.PadTheme
 import org.json.JSONObject
 
 /** USB renderer checks using public accessibility, real Compose and the installed app; no settings writes. */
@@ -27,7 +28,7 @@ class ToolCardsTestRunner : Instrumentation() {
             val displayed = mutableStateOf(Wire.message(JSONObject("""{"id":"c","type":"commandExecution","command":"test command","status":"inProgress","aggregatedOutput":null}""")))
             runOnMainSync {
                 activity.setContent {
-                    MaterialTheme {
+                    PadTheme {
                         Column(Modifier.fillMaxSize().padding(32.dp)) {
                             Text("TOOL-CARDS-USB")
                             Box(Modifier.weight(1f)) { MessageCard(displayed.value, false) }

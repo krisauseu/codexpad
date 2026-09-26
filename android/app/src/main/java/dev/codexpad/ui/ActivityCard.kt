@@ -1,6 +1,7 @@
 package dev.codexpad.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -9,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.codexpad.model.Activity
@@ -39,12 +39,14 @@ internal fun ActivityCard(message: Message, turnTerminal: Boolean = false) {
         message.completedEvent -> "Beendet · Status unbekannt"
         else -> "Status: ${activity.status}"
     }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.medium,
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth()) {
         Column {
-            TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+                    Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
                     Text("${if (expanded) "▾" else "▸"} $status · ${if (expanded) "Details schließen" else "Details öffnen"}",
                         color = when { failure -> MaterialTheme.colorScheme.error; running -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.onSurfaceVariant }, style = MaterialTheme.typography.labelMedium)

@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -69,20 +71,34 @@ fun ArtifactCard(artifact: Artifact, threadId: String, vm: PadViewModel) {
             finally { busy = false }
         }
     }
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
+    OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val type = when {
                 artifact.mimeType.startsWith("image/") -> "Bild"
                 artifact.mimeType == "application/pdf" -> "PDF"
                 artifact.mimeType == "text/markdown" -> "Markdown"
                 else -> "Text"
             }
-            Text("$type · ${artifact.name}", style = MaterialTheme.typography.titleSmall)
-            Text(Formatter.formatFileSize(context, artifact.size), style = MaterialTheme.typography.bodySmall)
-            Row {
-                TextButton(onClick = { download(true) }, enabled = !busy && pendingPath == null) { Text("Öffnen") }
-                TextButton(onClick = { download(false) }, enabled = !busy && pendingPath == null) { Text("Speichern") }
-                if (busy) Text("Wird geladen …", Modifier.padding(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        Text(if (type == "Markdown") "MD" else type, style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(artifact.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("$type · ${Formatter.formatFileSize(context, artifact.size)}", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalButton(onClick = { download(true) }, modifier = Modifier.heightIn(min = 48.dp), enabled = !busy && pendingPath == null) { Text("Öffnen") }
+                OutlinedButton(onClick = { download(false) }, modifier = Modifier.heightIn(min = 48.dp), enabled = !busy && pendingPath == null) { Text("Speichern") }
+            }
+            if (busy) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                Text("Datei wird geladen …", style = MaterialTheme.typography.labelMedium)
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }

@@ -28,7 +28,7 @@ weiterhin nie automatisch wiederholt.
 Das gespeicherte Token wird nie zurück ins Eingabefeld geladen; ein leeres Feld behält
 es bei. Eine andere Serveradresse verlangt eine erneute Token-Eingabe. Neue Eingaben
 sind vollständig maskiert, ohne Anzeige-Button, ohne Saved-State-Persistenz und ohne
-Klartext-Logging. Screenshots/Recents-Captures der App sind durch `FLAG_SECURE` gesperrt.
+Klartext-Logging. Screenshots der App sind möglich; vor dem Teilen sichtbare Gesprächsinhalte prüfen.
 Android Keystore hält einen AES-256-Schlüssel; app-private Preferences enthalten nur
 AES-GCM-Ciphertext, zufälligen IV und die URL. Die URL ist als AAD an das Token gebunden.
 Keystore-Zugriffe laufen auf einem IO-Dispatcher. Bei Schlüsselverlust neu eingeben;
@@ -221,3 +221,13 @@ echten Server auf Loopback-Port 18766 und die app-private `files/input-test.json
 mit `url`/temporärem `token`. Er verursacht zwei Modellturns und eine Ergebnisdatei;
 keine automatische Ausführung im normalen Build. Bestehende verschlüsselte
 Verbindungseinstellungen werden nach dem Test wiederhergestellt.
+
+
+## Tablet-Polish
+
+Der vorhandene Material-3-Stil nutzt eine gemeinsame ruhige Grün-/Surface-Palette,
+einheitliche Rundungen und besser abgestufte Schriftgrößen. Benutzertexte, Codex,
+Tool-Aktivitäten, Ergebnisdateien und Rückfragen sind visuell getrennt. Der Composer
+fasst Modellwahl, Anhänge und Eingabe zusammen; „Stoppen“ bleibt in der Statuszeile
+sichtbar. Navigation, Transport und das bisherige feste helle Erscheinungsbild bleiben
+unverändert. [Sicht- und Bediennachweis auf dem USB-Tablet](../docs/verification-ui-polish.md).

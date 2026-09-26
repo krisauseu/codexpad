@@ -20,13 +20,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -55,12 +55,13 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
     BackHandler(vm.showSettings || vm.workspace != null) {
         if (vm.showSettings) vm.closeSettings() else vm.back()
     }
-    MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF245E58), background = Color(0xFFF7F8F6))) {
+    PadTheme {
         Scaffold(topBar = {
             TopAppBar(title = {
                 Column {
-                    Text(if (vm.showSettings) "Einstellungen" else if (vm.threadId != null) "Thread" else vm.workspace?.name ?: "CodexPad", maxLines = 1)
-                    Text(vm.workspace?.name ?: "Workspaces", style = MaterialTheme.typography.labelMedium)
+                    Text(if (vm.showSettings) "Einstellungen" else if (vm.threadId != null) "Unterhaltung" else vm.workspace?.name ?: "CodexPad", maxLines = 1)
+                    Text(if (vm.showSettings) "CodexPad · Verbindung" else if (vm.threadId != null) vm.workspace?.name ?: "Workspace" else if (vm.workspace != null) "Workspace · CodexPad" else "Dein Arbeitsbereich",
+                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }, navigationIcon = {
                 if (vm.showSettings && vm.hasToken) TextButton(onClick = vm::closeSettings, enabled = !vm.settingsBusy) { Text("Zurück") }
@@ -71,7 +72,7 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
             })
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
-                Column(Modifier.widthIn(max = 1000.dp).fillMaxSize().padding(horizontal = 20.dp),
+                Column(Modifier.widthIn(max = 960.dp).fillMaxSize().padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!vm.ready) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -83,7 +84,12 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                             ThreadDetail(vm, session)
                         }
                     } else {
-                        Text(vm.serverUrl, style = MaterialTheme.typography.labelSmall)
+                        Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(if (vm.workspace == null) "Woran möchtest du arbeiten?" else "Deine Unterhaltungen",
+                                style = MaterialTheme.typography.headlineSmall)
+                            Text(if (vm.workspace == null) "Wähle einen Workspace, um mit Codex weiterzuarbeiten." else "Setze einen Thread fort oder beginne etwas Neues.",
+                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedButton(onClick = vm::reload, enabled = !vm.loading) { Text("Aktualisieren") }
                             if (vm.workspace != null) Button(onClick = vm::createThread,
@@ -95,13 +101,15 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                         vm.error?.let { ErrorText(it) }
                         if (vm.workspace == null) {
                             if (!vm.loading && vm.error == null && vm.workspaces.isEmpty())
-                                Text("Keine Workspaces konfiguriert. Der Server stellt die Projekte bereit.")
+                                EmptyState("Noch keine Workspaces", "Deine Projekte erscheinen hier, sobald sie auf dem Server eingerichtet sind.")
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 items(vm.workspaces, key = { it.id }) { ws ->
-                                    Card(onClick = { vm.selectWorkspace(ws) }, modifier = Modifier.fillMaxWidth()) {
-                                        Column(Modifier.padding(20.dp)) {
+                                    Card(onClick = { vm.selectWorkspace(ws) }, modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             Text(ws.name, style = MaterialTheme.typography.titleMedium)
-                                            Text(ws.id, style = MaterialTheme.typography.bodySmall)
+                                            if (ws.id != ws.name) Text(ws.id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("Threads ansehen →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                         }
                                     }
                                 }
@@ -113,15 +121,19 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                                     Text("Liste geprüft")
                                 }
                             }
-                            if (!vm.loading && vm.error == null && vm.threads.isEmpty()) Text("Noch keine Threads. Starte eine neue Unterhaltung.")
+                            if (!vm.loading && vm.error == null && vm.threads.isEmpty()) EmptyState("Platz für eine neue Idee", "Starte mit „Neuer Thread“ deine erste Unterhaltung in diesem Workspace.")
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 items(vm.threads, key = { it.id }) { thread ->
-                                    Card(onClick = { vm.openThread(thread.id) }, modifier = Modifier.fillMaxWidth()) {
+                                    Card(onClick = { vm.openThread(thread.id) }, modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Text(thread.preview.ifBlank { "Thread ${thread.id.take(8)}" },
                                                 style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                            Text(thread.id, style = MaterialTheme.typography.bodySmall)
-                                            Text("Status: ${thread.status}", style = MaterialTheme.typography.labelMedium)
+                                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                                Text(thread.id, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                StatusBadge(statusLabel(thread.status), thread.status == "active")
+                                            }
                                         }
                                     }
                                 }
@@ -166,10 +178,20 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         } }, confirmButton = { TextButton(onClick = { effortPicker = false }) { Text("Schließen") } })
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    Text(vm.threadId.orEmpty(), style = MaterialTheme.typography.labelSmall)
     var contextMenu by remember(session) { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(state.connection, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        StatusBadge(state.connection, state.connected)
+        Spacer(Modifier.width(8.dp))
+        state.timeline.thread?.let { Text(statusLabel(it.status), style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Spacer(Modifier.weight(1f))
+        if (state.compaction?.pending != true && (state.timeline.busy || state.interruptTurnId != null)) {
+            val target = state.stoppableTurnId
+            OutlinedButton(onClick = { target?.let { vm.stop(session, it) } }, enabled = target != null,
+                modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(if (state.interruptTurnId != null) "Wird gestoppt …" else "Stoppen")
+            }
+        }
         Box {
             TextButton(onClick = { contextMenu = true }) { Text("Kontext") }
             DropdownMenu(expanded = contextMenu, onDismissRequest = { contextMenu = false }) {
@@ -187,8 +209,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             Text("Zustand abgleichen")
         }
     }
-    state.timeline.thread?.let { Text("Threadstatus: ${it.status}", style = MaterialTheme.typography.labelMedium) }
-    if (state.requests.isNotEmpty()) Text("Codex wartet auf eine Angabe · ${state.requests.size} offene Rückfrage(n)",
+    if (state.requests.isNotEmpty()) Text("Deine Antwort ist gefragt · ${state.requests.size} offene Rückfrage(n)",
         style = MaterialTheme.typography.labelLarge)
     if (!state.connected) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.error?.let { ErrorText(it) }
@@ -205,11 +226,17 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             if (state.requests.isNotEmpty()) tailIndex - state.requests.size else tailIndex)
     }
     LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
-        if (turns.isEmpty()) item { Text(if (state.connected) "Noch keine Nachrichten." else "Verlauf wird geladen …") }
+        verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
+        if (turns.isEmpty()) item { EmptyState(if (state.connected) "Was möchtest du angehen?" else "Verlauf wird geladen …",
+            if (state.connected) "Stelle eine Frage, beschreibe eine Aufgabe oder hänge eine Datei an." else "Deine Unterhaltung wird mit dem Server abgeglichen.") }
         turns.forEach { turn ->
             item(key = "turn:${turn.id}") {
-                Text("Turn ${turn.id.take(8)} · ${turn.status}", style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HorizontalDivider(Modifier.weight(1f))
+                    Text("${statusLabel(turn.status)} · ${turn.id.take(8)}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(Modifier.weight(1f))
+                }
                 state.reroutes[turn.id]?.let { Text("Laufzeitumleitung: ${it.from} → ${it.to}",
                     style = MaterialTheme.typography.labelSmall) }
             }
@@ -243,82 +270,85 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         }
     }
     state.interruptError?.let { ErrorText(it) }
-    if (state.compaction?.pending != true && (state.timeline.busy || state.interruptTurnId != null)) {
-        val target = state.stoppableTurnId
-        OutlinedButton(onClick = { target?.let { vm.stop(session, it) } }, enabled = target != null,
-            modifier = Modifier.align(Alignment.End)) {
-            Text(if (state.interruptTurnId != null) "Wird gestoppt …" else "Stoppen")
-        }
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
-            style = MaterialTheme.typography.labelMedium)
-        Text(state.usage.label, style = MaterialTheme.typography.labelSmall)
-    }
-    if (state.requests.isEmpty()) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-            Text("Auswahl für nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else " · ohne Override"}",
-                style = MaterialTheme.typography.labelSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
-                    label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
-                AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
-                    label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
+                    style = MaterialTheme.typography.labelMedium)
+                Text(if (state.usage.used == null && state.usage.window == null) "Kontext: noch keine Nutzungsdaten" else state.usage.label,
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
-        if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
-        vm.modelError?.let { ErrorText("Modellkatalog: $it") }
-        if (vm.modelError != null || vm.models.isEmpty()) TextButton(onClick = vm::loadModels, enabled = !vm.modelsLoading) {
-            Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
-        }
-    }
-    val count = vm.draft.codePointCount(0, vm.draft.length)
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        vm.addAttachments(uris)
-    }
-    vm.attachmentError?.let { ErrorText(it) }
-    if (vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            vm.images.forEach { image ->
-                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
-                    Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        ImageThumbnail(image.uri)
-                        Text(image.name.take(18), style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.widthIn(max = 90.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        TextButton(onClick = { vm.removeImage(image.uri) }, enabled = !vm.sending) { Text("×") }
+            if (state.requests.isEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                    Text("Nächste Nachricht${if (vm.nextModel != null) " · vorgemerkt" else ""}",
+                        style = MaterialTheme.typography.labelSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AssistChip(onClick = { modelPicker = true }, enabled = vm.models.isNotEmpty() && !vm.sending && !vm.uncertain,
+                            label = { Text(selectedModel?.name ?: vm.nextModel ?: configured?.model ?: "Modell unbekannt") })
+                        AssistChip(onClick = { effortPicker = true }, enabled = !selectedModel?.efforts.isNullOrEmpty() && !vm.sending && !vm.uncertain,
+                            label = { Text((if (vm.nextModel != null) vm.nextEffort else configured?.reasoningEffort) ?: "Reasoning unbekannt") })
+                    }
+                    if (vm.nextModel != null) TextButton(onClick = vm::clearSelection, enabled = !vm.sending && !vm.uncertain) { Text("Auswahl verwerfen") }
+                }
+                vm.modelError?.let { ErrorText("Modellkatalog: $it") }
+                if (vm.modelError != null || vm.models.isEmpty()) TextButton(onClick = vm::loadModels, enabled = !vm.modelsLoading) {
+                    Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
+                }
+            }
+            val count = vm.draft.codePointCount(0, vm.draft.length)
+            val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+                vm.addAttachments(uris)
+            }
+            vm.attachmentError?.let { ErrorText(it) }
+            if (vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    vm.images.forEach { image ->
+                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
+                            Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                ImageThumbnail(image.uri)
+                                Text(image.name, style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.widthIn(max = 160.dp).padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                IconButton(onClick = { vm.removeImage(image.uri) }, enabled = !vm.sending,
+                                    modifier = Modifier.semantics { contentDescription = "${image.name} entfernen" }) { Text("×") }
+                            }
+                        }
+                    }
+                    vm.textFiles.forEach { file ->
+                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
+                            Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(file.name, modifier = Modifier.widthIn(max = 200.dp).padding(start = 8.dp), style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                IconButton(onClick = { vm.removeText(file.uri) }, enabled = !vm.sending,
+                                    modifier = Modifier.semantics { contentDescription = "${file.name} entfernen" }) { Text("×") }
+                            }
+                        }
                     }
                 }
             }
-            vm.textFiles.forEach { file ->
-                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainer) {
-                    Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("▤ ${file.name.take(24)}", style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        TextButton(onClick = { vm.removeText(file.uri) }, enabled = !vm.sending) { Text("×") }
-                    }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { picker.launch(arrayOf("image/png", "image/jpeg", "image/webp", "text/plain", "text/markdown")) },
+                    enabled = !vm.sending && !vm.uncertain && (vm.images.size < 4 || vm.textFiles.size < 2),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier.size(52.dp).semantics { contentDescription = "Datei anhängen" }) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
+                }
+                OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.weight(1f),
+                    label = { Text(if (state.canMessageDuringInput) "Weitere Nachricht an Codex" else "Nachricht an Codex") },
+                    shape = MaterialTheme.shapes.medium,
+                    minLines = 1, maxLines = 5,
+                    enabled = !vm.sending, isError = count > 4096,
+                    supportingText = if (count > 3500) ({ Text("$count / 4096 Zeichen") }) else null)
+                Button(onClick = vm::send, modifier = Modifier.heightIn(min = 52.dp),
+                    enabled = state.connected && (!state.timeline.busy || state.canMessageDuringInput) && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
+                        (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= 4096) {
+                    Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy && !state.canMessageDuringInput) "Codex arbeitet …" else "Senden")
                 }
             }
         }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedButton(onClick = { picker.launch(arrayOf("image/png", "image/jpeg", "image/webp", "text/plain", "text/markdown")) },
-            enabled = !vm.sending && !vm.uncertain && (vm.images.size < 4 || vm.textFiles.size < 2),
-            contentPadding = PaddingValues(horizontal = 12.dp),
-            modifier = Modifier.padding(bottom = 8.dp).semantics { contentDescription = "Datei anhängen" }) {
-            Text("+", style = MaterialTheme.typography.titleLarge)
-        }
-        OutlinedTextField(value = vm.draft, onValueChange = vm::editDraft, modifier = Modifier.weight(1f),
-            label = { Text(if (state.canMessageDuringInput) "Weitere Nachricht an Codex" else "Nachricht an Codex") },
-            minLines = if (state.requests.isEmpty()) 2 else 1, maxLines = 5,
-            enabled = !vm.sending, isError = count > 4096,
-            supportingText = { Text("$count / 4096 Zeichen") })
-        Button(onClick = vm::send, modifier = Modifier.padding(bottom = 8.dp),
-            enabled = state.connected && (!state.timeline.busy || state.canMessageDuringInput) && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
-                (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= 4096) {
-            Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy && !state.canMessageDuringInput) "Turn läuft …" else "Senden")
-        }
-    }
+    Spacer(Modifier.height(8.dp))
 }
 
 @Composable
@@ -332,7 +362,7 @@ private fun ImageThumbnail(uri: Uri) {
         }
     }
     bitmap?.let { Image(it.asImageBitmap(), contentDescription = "Bildvorschau",
-        modifier = Modifier.size(48.dp), contentScale = ContentScale.Crop) }
+        modifier = Modifier.size(48.dp).clip(MaterialTheme.shapes.small), contentScale = ContentScale.Crop) }
 }
 
 @Composable
@@ -343,22 +373,29 @@ internal fun MessageCard(message: Message, live: Boolean, turnTerminal: Boolean 
     }
     val user = message.type == "userMessage"
     val agent = message.type == "agentMessage"
-    Surface(color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(if (user) "Du" else if (agent) "Codex" else if (message.isCompaction) "Kontextkomprimierung" else "Servereintrag", fontWeight = FontWeight.SemiBold)
-            if (live && agent) Text("Live-Ausschnitt · bis zum History-Abgleich möglicherweise unvollständig",
-                style = MaterialTheme.typography.labelSmall)
-            if (message.text.isNotBlank()) SelectionContainer { Text(message.text, style = MaterialTheme.typography.bodyLarge) }
-            if (message.images > 0) Text("▧ ${message.images} Bild${if (message.images == 1) "" else "er"} angehängt",
-                style = MaterialTheme.typography.labelMedium)
+    Box(Modifier.fillMaxWidth(), contentAlignment = if (user) Alignment.CenterEnd else Alignment.CenterStart) {
+        Surface(color = if (user) MaterialTheme.colorScheme.primaryContainer else if (agent) MaterialTheme.colorScheme.surface
+                else MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(if (user) 0.88f else 1f)) {
+            Column(Modifier.padding(if (agent || user) 22.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(if (user) "Du" else if (agent) "Codex" else if (message.isCompaction) "Kontextkomprimierung" else "System",
+                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                if (live && agent) Text("Schreibt … · Live-Ausschnitt",
+                    style = MaterialTheme.typography.labelSmall)
+                if (message.text.isNotBlank()) SelectionContainer { Text(message.text, style = MaterialTheme.typography.bodyLarge) }
+                if (message.images > 0) Text("▧ ${message.images} Bild${if (message.images == 1) "" else "er"} angehängt",
+                    style = MaterialTheme.typography.labelMedium)
+            }
         }
     }
 }
 
 @Composable
 private fun ErrorText(text: String) {
-    Text(text, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+    Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+        Text(text, Modifier.padding(horizontal = 16.dp, vertical = 12.dp), style = MaterialTheme.typography.bodyMedium)
+    }
 }
 
 @Composable
@@ -366,7 +403,7 @@ private fun ConnectionSettingsScreen(vm: PadViewModel) {
     var url by remember(vm.serverUrl) { mutableStateOf(vm.serverUrl) }
     // Intentionally never saveable: no token in Bundle, SavedStateHandle or restored UI text.
     var enteredToken by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+    Column(Modifier.widthIn(max = 680.dp).fillMaxWidth().padding(top = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Serververbindung", style = MaterialTheme.typography.titleLarge)
         OutlinedTextField(value = url, onValueChange = { url = it; vm.settingsEdited() }, modifier = Modifier.fillMaxWidth(),

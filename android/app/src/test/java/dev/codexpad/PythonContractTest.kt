@@ -1,6 +1,8 @@
 package dev.codexpad
 
 import dev.codexpad.network.CodexPadApi
+import dev.codexpad.network.UploadText
+import dev.codexpad.model.TransferPolicy
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
@@ -11,6 +13,32 @@ import org.junit.Test
 
 /** Opt-in test against tools/contract_server.py, which imports the production Handler unchanged. */
 class PythonContractTest {
+    @Test fun longPromptsAndHtmlUseProductionPythonHandler() = runBlocking {
+        val base = System.getenv("CODEXPAD_CONTRACT_URL")
+        assumeTrue("Start tools/contract_server.py and set CODEXPAD_CONTRACT_URL", base != null)
+        val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"))
+        val workspace = api.workspaces().single()
+        val prefix = " \nGrüße 👋\n# Markdown\n```text\nCode\n```\n"
+        val message = prefix + "😀".repeat(12000 - TransferPolicy.messageLength(prefix) - 2) + "\n "
+        for (multipart in listOf(false, true)) {
+            val thread = api.createThread(workspace.id)
+            val files = if (multipart) listOf(UploadText("seite.html", "text/html", "<p>Grüße</p>".toByteArray())) else emptyList()
+            val turn = api.startTurn(thread.id, message, null, null, emptyList(), files)
+            assertEquals(message, turn.items.first().text)
+            assertEquals(message, api.history(thread.id).turns.single().items.first().text)
+            api.interruptTurn(thread.id, turn.id)
+        }
+        // Empty prompt exposes the attachment text as the fixture's first user input.
+        for (name in listOf("Grüße.html", "seite.htm")) {
+            val content = " \n<!doctype html>\n<p>Grüße 👋</p>\n "
+            val thread = api.createThread(workspace.id)
+            val turn = api.startTurn(thread.id, "", null, null, emptyList(),
+                listOf(UploadText(name, "text/html", content.toByteArray())))
+            assertEquals("Dateianhang: $name\n-----\n$content\n-----", turn.items.first().text)
+            api.interruptTurn(thread.id, turn.id)
+        }
+    }
+
     @Test fun realPythonRoutesStreamDisconnectReconnectAndContinue() = runBlocking {
         val base = System.getenv("CODEXPAD_CONTRACT_URL")
         assumeTrue("Start tools/contract_server.py and set CODEXPAD_CONTRACT_URL", base != null)

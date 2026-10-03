@@ -412,18 +412,16 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             when {
                 mime in setOf("image/png", "image/jpeg", "image/webp") && images.size < 4 ->
                     images = images + PendingImage(uri, name, mime!!)
-                mime in setOf("text/plain", "text/markdown") && name.lowercase().endsWithAny(".txt", ".md") && textFiles.size < 2 ->
+                TransferPolicy.acceptsText(name, mime) && textFiles.size < 2 ->
                     textFiles = textFiles + PendingText(uri, name, mime!!)
                 else -> rejected = true
             }
         }
-        attachmentError = if (rejected) "Erlaubt: bis zu vier Bilder und zwei .txt/.md-Dateien." else null
+        attachmentError = if (rejected) "Erlaubt: bis zu vier Bilder und zwei .txt/.md/.html/.htm-Dateien." else null
     }
 
     fun removeImage(uri: Uri) { if (!sending) images = images.filterNot { it.uri == uri } }
     fun removeText(uri: Uri) { if (!sending) textFiles = textFiles.filterNot { it.uri == uri } }
-
-    private fun String.endsWithAny(vararg suffixes: String) = suffixes.any { endsWith(it) }
 
     private fun readLimited(uri: Uri, limit: Int): ByteArray {
         val stream = getApplication<Application>().contentResolver.openInputStream(uri)
@@ -513,14 +511,18 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     fun send() {
         val id = threadId ?: return
         val target = session ?: return
-        val message = draft.trim()
+        val message = draft
+        if (TransferPolicy.messageLength(message) > TransferPolicy.MAX_MESSAGE) {
+            sendError = TransferPolicy.MESSAGE_LIMIT_ERROR
+            return
+        }
         val selectedImages = images
         val selectedTexts = textFiles
         val model = nextModel
         val effort = nextEffort
         if (sending || uncertain || target.state.value.compaction?.pending == true || target.state.value.interruptTurnId != null ||
             !target.state.value.connected || (target.state.value.timeline.busy && !target.state.value.canMessageDuringInput) ||
-            (message.isEmpty() && selectedImages.isEmpty() && selectedTexts.isEmpty()) || message.codePointCount(0, message.length) > 4096) return
+            (message.isBlank() && selectedImages.isEmpty() && selectedTexts.isEmpty())) return
         sending = true
         sendError = null
         viewModelScope.launch {
@@ -541,7 +543,8 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
                 if (threadId == id) {
                     if (posting && failure is ApiException && failure.status in setOf(400, 413, 415)) {
                         saved["uncertain:$id"] = false
-                        attachmentError = "Datei abgelehnt (HTTP ${failure.status}). Typ und Größe prüfen."
+                        if (failure.code == "message_too_long") sendError = TransferPolicy.MESSAGE_LIMIT_ERROR
+                        else attachmentError = "Datei abgelehnt (HTTP ${failure.status}). Erlaubt: PNG/JPEG/WebP und UTF-8 .txt/.md/.html/.htm; Größe prüfen."
                     } else if (posting) { uncertain = true; sendError = "Ausgang unbekannt: ${connectionError(failure)}" }
                     else attachmentError = failure.message ?: "Bild konnte nicht gelesen werden."
                 }

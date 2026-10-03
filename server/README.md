@@ -135,6 +135,12 @@ Thread-/History-Readback ist autoritativ. Usage bleibt beim vorhandenen SSE-Vert
 
 ## Bild- und Textdateien an Turns
 
+Normale Nachrichten sind auf **12.000 Unicode-Zeichen** begrenzt, bei JSON und
+Multipart gleichermaßen. Überlange Nachrichten liefern HTTP 400 mit
+`code=message_too_long`; Inhalte werden niemals gekürzt oder getrimmt. Nur für
+Turn-Anfragen erlaubt der JSON-Parser bis zu 160 KiB, auch für Unicode-Escapes.
+Andere JSON-Endpunkte und Antworten auf Rückfragen behalten ihre bisherigen Grenzen.
+
 Reine Textnachrichten verwenden weiter JSON. Für Anhänge akzeptiert derselbe
 authentifizierte `POST /threads/{id}/turns` `multipart/form-data` mit `message`,
 optional `model`/`effort`, bis zu vier Teilen namens `image` und zwei Teilen namens
@@ -149,10 +155,11 @@ deren absoluten Pfad als `localImage` zusammen mit optionalem Text in **einem**
 bleiben erhalten, weil Codex die Pfade im Verlauf referenziert; ein verlaufsbewusster
 Löschmechanismus und dauerhafte Bildvorschauen sind noch nicht implementiert.
 
-`.txt` und `.md` werden mit MIME `text/plain` oder `text/markdown` und maximal
-64 KiB pro Datei angenommen. Sie müssen gültiges UTF-8 ohne NUL-Zeichen enthalten.
+`.txt`, `.md`, `.html` und `.htm` werden mit MIME `text/plain`, `text/markdown`
+oder `text/html` und maximal 64 KiB pro Datei angenommen. Sie müssen gültiges UTF-8 ohne NUL-Zeichen enthalten.
 Der Server liest sie direkt und gibt Dateiname und Inhalt als gekennzeichnete
 `text`-Inputs an denselben Turn weiter. Andere Dateitypen bleiben abgewiesen.
+HTML wird ausschließlich als Text übertragen, ohne Ausführung oder Vorschau.
 
 ## Ergebnisdateien (v1)
 
@@ -161,7 +168,7 @@ Turn um `artifacts: [{id, name, mimeType, size, turnId}]`. Pfade bleiben intern.
 `GET /threads/{threadId}/artifacts/{artifactId}` liefert mit demselben Bearer-Token
 Dateibytes, Content-Type, Content-Length und UTF-8 Content-Disposition; keine
 Download-URLs mit Token, keine Redirects. Maximal **64 MiB pro Datei**, 128 Kandidaten
-pro Turn. PDF, PNG, JPEG, WebP sowie UTF-8 TXT/Markdown; Endung und Signatur bzw.
+pro Turn. PDF, PNG, JPEG, WebP sowie UTF-8 TXT/Markdown/HTML; Endung und Signatur bzw.
 Textinhalt werden gemeinsam geprüft. Keine vollständige Formatvalidierung.
 
 Erkennung: erfolgreiche strukturierte `fileChange`-Items (inklusive Move-Ziel).

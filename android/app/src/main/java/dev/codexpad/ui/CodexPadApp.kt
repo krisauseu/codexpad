@@ -36,6 +36,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.codexpad.data.ThreadSession
 import dev.codexpad.model.Message
+import dev.codexpad.model.TransferPolicy
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -256,6 +257,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             OutlinedButton(onClick = vm::reviewedUnknown, enabled = state.connected && !state.timeline.busy) { Text("Verlauf geprüft") }
         }
     }
+    if (!vm.uncertain) vm.sendError?.let { ErrorText(it) }
     state.interruptError?.let { ErrorText(it) }
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
@@ -284,7 +286,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
                     Text(if (vm.modelsLoading) "Katalog lädt …" else "Modellkatalog laden")
                 }
             }
-            val count = vm.draft.codePointCount(0, vm.draft.length)
+            val count = TransferPolicy.messageLength(vm.draft)
             val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
                 vm.addAttachments(uris)
             }
@@ -315,7 +317,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { picker.launch(arrayOf("image/png", "image/jpeg", "image/webp", "text/plain", "text/markdown")) },
+                OutlinedButton(onClick = { picker.launch(TransferPolicy.pickerMimeTypes) },
                     enabled = !vm.sending && !vm.uncertain && (vm.images.size < 4 || vm.textFiles.size < 2),
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     modifier = Modifier.size(52.dp).semantics { contentDescription = "Datei anhängen" }) {
@@ -325,11 +327,13 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
                     label = { Text(if (state.canMessageDuringInput) "Weitere Nachricht an Codex" else "Nachricht an Codex") },
                     shape = MaterialTheme.shapes.medium,
                     minLines = 1, maxLines = 5,
-                    enabled = !vm.sending, isError = count > 4096,
-                    supportingText = if (count > 3500) ({ Text("$count / 4096 Zeichen") }) else null)
+                    enabled = !vm.sending, isError = count > TransferPolicy.MAX_MESSAGE,
+                    supportingText = if (count > TransferPolicy.MESSAGE_WARNING) ({ Text(if (count > TransferPolicy.MAX_MESSAGE)
+                        TransferPolicy.MESSAGE_LIMIT_ERROR + " ($count / ${TransferPolicy.MAX_MESSAGE})"
+                        else "$count / ${TransferPolicy.MAX_MESSAGE} Zeichen") }) else null)
                 Button(onClick = vm::send, modifier = Modifier.heightIn(min = 52.dp),
                     enabled = state.connected && (!state.timeline.busy || state.canMessageDuringInput) && state.compaction?.pending != true && state.interruptTurnId == null && !vm.sending && !vm.uncertain &&
-                        (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= 4096) {
+                        (vm.draft.isNotBlank() || vm.images.isNotEmpty() || vm.textFiles.isNotEmpty()) && count <= TransferPolicy.MAX_MESSAGE) {
                     Text(if (vm.sending) "Wird gesendet …" else if (state.timeline.busy && !state.canMessageDuringInput) "Codex arbeitet …" else "Senden")
                 }
             }

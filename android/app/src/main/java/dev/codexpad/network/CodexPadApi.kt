@@ -96,6 +96,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
 
     suspend fun startTurn(threadId: String, message: String, model: String?, effort: String?,
         images: List<UploadImage>, files: List<UploadText> = emptyList()): Turn {
+        require(TransferPolicy.messageLength(message) <= TransferPolicy.MAX_MESSAGE) { TransferPolicy.MESSAGE_LIMIT_ERROR }
         val turnRequest = if (images.isEmpty() && files.isEmpty()) request("threads", threadId, "turns",
             body = JSONObject().put("message", message).apply {
                 model?.let { put("model", it) }; effort?.let { put("effort", it) }

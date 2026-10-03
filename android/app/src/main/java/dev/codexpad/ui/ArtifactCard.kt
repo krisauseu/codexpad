@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.codexpad.model.Artifact
+import dev.codexpad.model.TransferPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -57,7 +58,7 @@ fun ArtifactCard(artifact: Artifact, threadId: String, vm: PadViewModel) {
                 if (open) {
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.artifacts", file)
                     val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri,
-                        if (artifact.mimeType == "text/markdown") "text/plain" else artifact.mimeType)
+                        TransferPolicy.openMimeType(artifact.mimeType))
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     intent.clipData = ClipData.newRawUri(artifact.name, uri)
                     try { context.startActivity(Intent.createChooser(intent, "Datei öffnen")) }

@@ -88,6 +88,13 @@ Maßgeblich ist `server/codexpad_server.py`, nicht ein hypothetisches REST-Schem
 
 User-Items: `type=userMessage`, `content[]` mit `type=text`, `text`. Agent-Items: `type=agentMessage`, `text`. Sonstige Itemtypen erscheinen als kleine Typ-/Statusangabe, nicht als erfundene Textantwort. `preview` ist Vorschautext, kein behaupteter Titel; fehlt er, wird die ID angezeigt. IDs werden als URL-Pfadsegmente kodiert.
 
+Normale Prompts akzeptieren bis zu 12.000 Unicode-Zeichen. Der Composer zeigt ab
+10.251 Zeichen den Zähler, oberhalb des Limits eine Fehlermeldung und sperrt Senden.
+ViewModel, HTTP-Client und Server prüfen dasselbe Limit; Inhalte einschließlich
+Rand-Leerzeichen und Zeilenumbrüchen bleiben unverändert. Der SAF-Dateipicker und
+die Upload-Prüfung erlauben zusätzlich UTF-8 `.html`/`.htm` mit `text/html`;
+die vorhandenen Größen- und Workspace-Grenzen bleiben bestehen. Keine HTML-Vorschau.
+
 ### Kleine kompatible Serverkorrektur
 
 Beim Clientanschluss festgestellt: Der bestehende Router zerlegt den URL-Pfad, dekodiert jedoch keine Prozentkodierung. Workspaces mit Leerzeichen, Umlauten oder `#` stehen im Katalog, sind über einen regulären HTTP-Client aber nicht auswählbar. Die notwendige kompatible Korrektur dekodiert jedes bereits getrennte Segment genau einmal (`urllib.parse.unquote`). Die API und Workspace-Zuordnung bleiben gleich. Ein lokaler Vertragstest verwendet ausdrücklich `demo space-ä`.
@@ -196,11 +203,12 @@ als Laufzeitumleitung angezeigt und verändern Modell/Effort des Threads nicht.
 
 ## Ergebnisdateien
 
-Terminale Turns können Datei-Karten für PDF, PNG/JPEG/WebP und TXT/Markdown zeigen.
+Terminale Turns können Datei-Karten für PDF, PNG/JPEG/WebP und TXT/Markdown/HTML zeigen.
 „Öffnen“ lädt authentifiziert in den privaten Cache und übergibt eine FileProvider-
-URI mit temporärem Lesegrant an die Android-App-Auswahl. Markdown wird zum Öffnen
+URI mit temporärem Lesegrant an die Android-App-Auswahl. Markdown und HTML werden zum Öffnen
 als Text angeboten. „Speichern“ lädt zunächst vollständig, öffnet dann Androids
-Storage Access Framework und schreibt ausschließlich an das gewählte Ziel.
+Storage Access Framework und schreibt ausschließlich an das gewählte Ziel;
+MIME-Type und Dateiname bleiben erhalten.
 Keine zusätzlichen Storage-Berechtigungen. Details und echte Geräteabnahme:
 [verification-artifacts.md](../docs/verification-artifacts.md).
 

@@ -33,6 +33,11 @@ UPLOAD_ROOT = Path(os.environ.get("CODEXPAD_UPLOAD_ROOT", "~/uploads")).expandus
 MAX_IMAGE = 5 * 1024 * 1024
 MAX_BODY = 21 * 1024 * 1024
 MAX_TEXT_FILE = 64 * 1024
+MAX_MESSAGE = 12_000
+MESSAGE_LIMIT_ERROR = "Message exceeds 12000 characters"
+TEXT_TYPES = {".txt": "text/plain", ".md": "text/markdown",
+              ".html": "text/html", ".htm": "text/html"}
+TEXT_MIMES = frozenset(TEXT_TYPES.values())
 
 
 class ApiError(Exception):
@@ -535,7 +540,7 @@ def save_images(images):
 MAX_ARTIFACT = 64 * 1024 * 1024
 RESULT_DIR = "codexpad-results"
 RESULT_TYPES = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".md": "text/markdown"}
+                ".jpeg": "image/jpeg", ".webp": "image/webp", **TEXT_TYPES}
 
 
 def result_folder(thread_id, nonce):
@@ -544,7 +549,7 @@ def result_folder(thread_id, nonce):
 
 def result_instruction(thread_id, nonce):
     return ("[CodexPad results " + nonce + "]\n"
-            "Save final downloadable PDF, PNG, JPEG, WebP, TXT or Markdown results in " +
+            "Save final downloadable PDF, PNG, JPEG, WebP, TXT, Markdown or HTML results in " +
             result_folder(thread_id, nonce) + "/ (create it if needed, flat files only). "
             "This folder publishes results to the user. Never place credentials, secrets or server configuration there.")
 
@@ -590,7 +595,7 @@ def read_result(cwd, relative):
         os.close(fd)
     suffix = relative.suffix.lower()
     mime = RESULT_TYPES[suffix]
-    if suffix in (".txt", ".md"):
+    if suffix in TEXT_TYPES:
         text = data.decode("utf-8")
         if any(ord(c) < 32 and c not in "\n\r\t" for c in text):
             raise ValueError("Invalid text")
@@ -617,7 +622,12 @@ def result_candidates(current, turn):
             for content in item.get("content", []):
                 text = content.get("text", "")
                 match = re.match(r"^\[CodexPad results ([a-f0-9]{32})\]\n", text)
-                if not match or text != result_instruction(current["id"], match[1]):
+                if not match:
+                    continue
+                instruction = result_instruction(current["id"], match[1])
+                # Existing history must still identify folders created before HTML support.
+                legacy = instruction.replace("TXT, Markdown or HTML results", "TXT or Markdown results")
+                if text not in (instruction, legacy):
                     continue
                 folder = Path(result_folder(current["id"], match[1]))
                 # Do not even list through symlinked parents.
@@ -702,22 +712,23 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def read_json(self):
+    def read_json(self, max_bytes=16384):
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            if size < 1 or size > 16384:
+            if size < 1 or size > max_bytes:
                 raise ValueError()
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError()
             return data
         except (ValueError, json.JSONDecodeError):
-            raise ApiError(400, "Expected JSON object of at most 16 KiB")
+            raise ApiError(400, f"Expected JSON object of at most {max_bytes // 1024} KiB")
 
     def read_turn(self):
         content_type = self.headers.get("Content-Type", "")
         if not content_type or content_type.startswith("application/json"):
-            return self.read_json(), [], []
+            # JSON may escape every Unicode code point as two \uXXXX sequences.
+            return self.read_json(max_bytes=160 * 1024), [], []
         if not content_type.startswith("multipart/form-data;"):
             raise ApiError(415, "Expected JSON or multipart/form-data")
         try:
@@ -740,7 +751,16 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(400, "Invalid multipart part")
             name = part.get_param("name", header="content-disposition")
             data = part.get_payload(decode=True)
-            if name in ("message", "model", "effort") and name not in fields and len(data) <= 4096:
+            if name == "message" and name not in fields:
+                if len(data) > MAX_MESSAGE * 4:
+                    raise ApiError(400, MESSAGE_LIMIT_ERROR)
+                try:
+                    fields[name] = data.decode("utf-8")
+                except UnicodeDecodeError:
+                    raise ApiError(400, "Invalid UTF-8 field") from None
+                if len(fields[name]) > MAX_MESSAGE:
+                    raise ApiError(400, MESSAGE_LIMIT_ERROR)
+            elif name in ("model", "effort") and name not in fields and len(data) <= 4096:
                 try:
                     fields[name] = data.decode("utf-8")
                 except UnicodeDecodeError:
@@ -753,9 +773,9 @@ class Handler(BaseHTTPRequestHandler):
             elif name == "file" and len(text_files) < 2 and 0 < len(data) <= MAX_TEXT_FILE:
                 raw_name = part.get_filename() or ""
                 filename = Path(raw_name.replace("\\", "/")).name
-                if (filename.lower().endswith((".txt", ".md")) and
+                if (Path(filename).suffix.lower() in TEXT_TYPES and
                         len(filename) <= 100 and not any(ord(char) < 32 for char in filename) and
-                        part.get_content_type() in ("text/plain", "text/markdown")):
+                        part.get_content_type() in TEXT_MIMES):
                     try:
                         content = data.decode("utf-8")
                     except UnicodeDecodeError:
@@ -764,7 +784,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ApiError(415, "Invalid text file")
                     text_files.append((filename, content))
                 else:
-                    raise ApiError(415, "Only UTF-8 .txt and .md files are supported")
+                    raise ApiError(415, "Only UTF-8 .txt, .md, .html and .htm files are supported")
             else:
                 raise ApiError(400, "Unsupported or oversized multipart part")
         return fields, images, text_files
@@ -914,8 +934,10 @@ class Handler(BaseHTTPRequestHandler):
                 current = thread(thread_id)
                 payload, images, text_files = self.read_turn()
                 message = payload.get("message")
-                if not isinstance(message, str) or len(message) > 4096 or (not message.strip() and not images and not text_files):
-                    raise ApiError(400, "message or attachment required; text limit is 4096 characters")
+                if isinstance(message, str) and len(message) > MAX_MESSAGE:
+                    raise ApiError(400, MESSAGE_LIMIT_ERROR)
+                if not isinstance(message, str) or (not message.strip() and not images and not text_files):
+                    raise ApiError(400, "message or attachment required")
                 overrides = turn_overrides(payload, current)
                 # Resume is idempotent for a persisted thread; a new turn is not.
                 try:
@@ -984,7 +1006,8 @@ class Handler(BaseHTTPRequestHandler):
             if result is not None:
                 self.send_json(*result)
         except ApiError as error:
-            codes = {"Invalid workspace name": "invalid_workspace_name",
+            codes = {MESSAGE_LIMIT_ERROR: "message_too_long",
+                     "Invalid workspace name": "invalid_workspace_name",
                      "Workspace name already exists": "workspace_exists",
                      "Workspace has threads; rename and delete are blocked": "workspace_has_threads",
                      "Workspace contents changed; inspect again": "workspace_changed",

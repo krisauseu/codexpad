@@ -1,5 +1,13 @@
 # CodexPad
 
+> Fortschreibung 3. Oktober 2026: Für den inzwischen implementierten persönlichen
+> Single-User-Betrieb gelten [HOST_SETUP](HOST_SETUP.md) und
+> [ADR 0005](docs/decisions/0005-personal-trusted-host.md): Trusted Host mit
+> Full Access/never/administrativem sudo, keine gewöhnlichen Tablet-Approvals.
+> Pi 4 ARM64 ist das nächste Hostziel, noch nicht praktisch abgenommen.
+> Die folgende Vision und Research-Reihenfolge bleiben ihr historischer Stand;
+> sie definieren kein abweichendes Permissionmodell für den persönlichen Modus.
+
 Arbeitstitel. Stand: 18. September 2026. Produktvision und Architekturhypothese, kein PRD. Erste begrenzte [ADRs](docs/decisions/README.md) liegen vor; die Implementierungsarchitektur ist noch nicht vollständig entschieden.
 
 ## Problem und Vision

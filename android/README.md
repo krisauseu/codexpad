@@ -1,5 +1,14 @@
 # CodexPad Android 0.1.1
 
+Host-Einrichtung und Pi-Ziel: [HOST_SETUP](../HOST_SETUP.md#10-netzwerk-und-android-verbindung).
+Stand 3. Oktober 2026: Direktes LAN-HTTP ist trotz einstellbarer Serveradresse
+noch durch URLvalidierung und Release-Cleartextpolicy blockiert; Debug erlaubt
+nur Loopback/Emulator. Die minimalen NSC-/Validatoränderungen sind dort beschrieben,
+hier noch nicht implementiert. Target SDK ist bereits 37; Android 17 benötigt
+für direkten LAN-Zugriff zusätzlich `ACCESS_LOCAL_NETWORK` samt Runtimebehandlung,
+die momentan fehlt. HTTPS bleibt konfigurierbar. Dies ist eine Android-System-
+berechtigung, keine gewöhnliche Codex-Approvalanfrage.
+
 Nativer persönlicher Single-User-Client für die vorhandene CodexPad-HTTP-API. Workspaces → Threads → Thread-Detail sowie Verbindungseinstellungen. Keine zusätzlichen Hostfähigkeiten. [Build- und Tablet-Nachweis](VERIFICATION.md).
 
 ## Lokaler Build
@@ -151,7 +160,7 @@ feststellt. Ein neuerer Turn wird niemals als Ersatz für den ursprünglichen ge
 
 ## Grenzen / Folgepunkte
 
-- Tablet-Lauf gegen lokale Vertragsfixtures und [echter Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
+- Tablet-Lauf gegen lokale Vertragsfixtures und [historischer Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Dies ist kein aktueller Codex-Betriebs-/Supportstand; die gewählte Pi-Version separat abnehmen. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
 - Nur Nutzung bei offener App, keine Push-/Hintergrundzusage. Kein Terminal, Dateimanager, Git-UI, Editor, Approval-UI (die vorhandene API besitzt diese Endpunkte nicht).
 - Textdarstellung ohne Markdown-Engine; Bilder als Vorschau im Composer und Typmarker in der History, noch ohne dauerhafte History-Bildvorschau. Tool-Items nur Typ/Status.
 - Vollständige Legacy-History ohne Pagination; für sehr lange Unterhaltungen noch nicht optimiert.
@@ -266,7 +275,8 @@ weitergeleitet. Bei unbestätigtem POST wird zuerst der Zustand abgeglichen, nie
 automatisch nochmals gesendet. Der Composer kann bei `isBlocking=false` zusätzliche
 Nachrichten an denselben Turn schicken. Keine Approval-UI und keine Policyänderung.
 
-[Verifizierter 0.156.1-Vertrag, API und Tablet-Nachweis](../docs/verification-user-input.md).
+[Historischer 0.156.1-Vertrag, API und damaliger Tablet-Nachweis](../docs/verification-user-input.md),
+keine aktuelle Versions-/Supportempfehlung; neuer Host separat abzunehmen.
 Opt-in-Gerätetest: `:app:assembleDebugAndroidTest
 -Pcodexpad.testRunner=dev.codexpad.UserInputTestRunner`. Er benötigt einen isolierten
 echten Server auf Loopback-Port 18766 und die app-private `files/input-test.json`

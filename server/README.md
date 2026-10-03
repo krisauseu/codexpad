@@ -1,5 +1,22 @@
 # CodexPad Single-User-Server
 
+Neue Hosts: [kanonische HOST_SETUP-Anleitung](../HOST_SETUP.md), Ziel Pi 4 ARM64.
+Die datierte Inventur vom 3. Oktober 2026 belegte beim damaligen VPS-Dienst
+Codex **0.160.0**, mit eigenem
+PATH-Drop-in und [dokumentiertem Code-Overlay](../docs/vps-inventory-2026-10-03.md).
+Full Access/never und administratives sudo sind das persönliche Betriebsmodell
+gemäß ADR 0005. Direkte LAN-Bindung ist im aktuellen Adapter nicht konfigurierbar;
+HOST_SETUP dokumentiert private Proxy-/HTTPS-Wege und die noch fehlende Android-LAN-Umsetzung.
+
+Die historische Dienstversion ist keine Sollversion für neue Hosts. Zum
+Installationszeitpunkt die bewusst ausgewählte aktuelle/unterstützte Codex-Version
+für ARM64 als vollständiges Release installieren, samt allen von dieser Version
+benötigten Helpern wie `codex-code-mode-host`. Binary und Helper müssen aus
+demselben Release stammen. Den tatsächlich vom systemd-Dienst gestarteten
+Binary-Pfad, Version und Helper ermitteln/protokollieren; keine zusätzliche
+globale CLI als Referenz verwenden. Ältere Testbelege unten sind ausschließlich
+historische Evidenz, keine aktuelle Versions- oder Supportempfehlung.
+
 Python 3.12+, `codex` im PATH und angemeldeter Codex-Account erforderlich. Keine
 Python-Pakete nötig. [HTTPS/systemd/Caddy-Deployment](../docs/deployment.md).
 
@@ -9,8 +26,8 @@ Workspaces bereit; `CODEXPAD_PORT` ändert für lokale Tests nur den Port.
 Der interne `codex app-server --stdio`-Kindprozess hat keinen Netzwerklistener.
 Für den persönlichen Test-VPS startet er mit `sandbox_mode=danger-full-access`
 und `approval_policy=never`. Jeder neue Thread und Turn erhält dieselbe Policy;
-der Dienst benötigt das vollständige Codex-Standalone-Release inklusive
-`codex-code-mode-host` und die in `deploy/` dokumentierten Hostrechte.
+der Dienst benötigt das vollständige gewählte Codex-Standalone-Release samt
+seinen benötigten Helpern und die in `deploy/` dokumentierten Hostrechte.
 
 `CODEXPAD_ACCESS_TOKEN` ist zwingend: 43–512 URL-sichere Zeichen, generiert aus
 mindestens 32 Zufallsbytes (empfohlen `secrets.token_urlsafe(48)`). Kein Auth-Bypass
@@ -72,7 +89,8 @@ ist keine atomare Migration dieser Daten. Die Prüfung umfasst alle Quellen,
 Provider, paginierten und archivierten Threads, Unterverzeichnisse und den
 Fresh-Cache. Zusätzlich liest der bestehende Adapter ausschließlich die ersten
 `session_meta`-Zeilen unter `$CODEX_HOME/sessions` und `archived_sessions`, weil
-Codex 0.156.1 leere persistierte Threads bei `thread/list` auslässt. Unlesbare
+in historischen Tests mit Codex 0.156.1 leere persistierte Threads bei `thread/list`
+ausgelassen wurden. Diese Version ist kein aktueller Betriebs- oder Supportstand. Unlesbare
 Metadaten oder Backendfehler blockieren Änderungen. Es werden keine Codex-
 Sessiondateien oder Datenbanken verändert oder gelöscht.
 
@@ -96,7 +114,7 @@ Experimental-Opt-in. HTTP 202 mit `{}` bestätigt nur die RPC-Antwort; der endg�
 Zustand kommt über bestehende SSE-Notifications und History. Der bestehende
 60-Sekunden-RPC-Timeout kann einen unklaren Ausgang ergeben und löst keinen Retry aus.
 
-Der [Gerätetest gegen Codex 0.156.1](../docs/verification-interrupt.md) belegt
+Der [historische Gerätetest gegen Codex 0.156.1](../docs/verification-interrupt.md) belegte
 Interrupt, History/Reconnect, Fortsetzung und Abweisung einer alten Turn-ID.
 
 ## Tests
@@ -172,7 +190,8 @@ pro Turn. PDF, PNG, JPEG, WebP sowie UTF-8 TXT/Markdown/HTML; Endung und Signatu
 Textinhalt werden gemeinsam geprüft. Keine vollständige Formatvalidierung.
 
 Erkennung: erfolgreiche strukturierte `fileChange`-Items (inklusive Move-Ziel).
-Codex 0.156.1 meldet Shell-/Python-Dateiausgaben dagegen nicht als `fileChange`.
+In historischen Tests mit Codex 0.156.1 wurden Shell-/Python-Dateiausgaben
+dagegen nicht als `fileChange` gemeldet; kein aktueller Versionsnachweis.
 Deshalb ergänzt der Adapter jeden neuen Turn um einen separaten Text-Input, der
 Ergebnisdateien ausdrücklich nach `codexpad-results/<Thread-Hash>/<Zufalls-ID>/`
 im aktuellen Workspace bestellt. Die exakte Anweisung bleibt in der Codex-History;
@@ -198,8 +217,10 @@ und FileProvider-Lesegrant; bewusstes Speichern nutzt ACTION_CREATE_DOCUMENT.
 
 ## Interaktive Rückfragen
 
-Codex 0.156.1: `item/tool/requestUserInput` für Freitext/eigene Antwort und
-Einzelauswahl. Der Adapter aktiviert `features.default_mode_request_user_input`
+Der Adapter verwendet `item/tool/requestUserInput` für Freitext/eigene Antwort
+und Einzelauswahl; der unten verlinkte Tabletbeleg stammt aus historischen Tests,
+nicht aus einer Abnahme der neu gewählten Hostversion.
+Der Adapter aktiviert `features.default_mode_request_user_input`
 für den normalen Modus; `approvalPolicy: "never"` bleibt unverändert. Keine
 Command-/File-/Permission-Approval-UI oder allgemeine Grants.
 

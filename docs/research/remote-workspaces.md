@@ -1,5 +1,12 @@
 # Entfernte Linux-Workspaces
 
+> Betriebsfortschreibung 3. Oktober 2026: Der implementierte persönliche Pfad
+> ist Android HTTPS/JSON/SSE → Caddy → Loopback-Python-Adapter → stdio-Codex.
+> Der Pi übernimmt künftig dieselbe Hostrolle, mit privatem konfigurierbarem
+> LAN-/Tailneteingang. [HOST_SETUP](../../HOST_SETUP.md) und
+> [Ist-Inventar](../vps-inventory-2026-10-03.md) sind für Betrieb maßgeblich;
+> die Variantenrecherche unten bleibt als historischer Entwurfsstand erhalten.
+
 Stand: 18. September 2026. Konsolidierte Research mit begrenzten [ADRs](../decisions/README.md). Zwei Laufzeit-Spikes mit Codex 0.154.0 liegen vor. Der untersuchte Codex-Quellstand ist [`7498521d288b9b3b96ffba4eedf089d8d6e06a84`](https://github.com/openai/codex/tree/7498521d288b9b3b96ffba4eedf089d8d6e06a84). Ein Befund auf `main` bedeutet nicht automatisch, dass dieselbe Funktion in einem veröffentlichten CLI-Paket enthalten ist.
 
 ## Ergebnis

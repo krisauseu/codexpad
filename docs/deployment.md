@@ -1,5 +1,19 @@
 # Persönlicher HTTPS-Betrieb auf pad.feichti.dev
 
+> Fortschreibung 3. Oktober 2026: Für neue Hosts ist [HOST_SETUP](../HOST_SETUP.md)
+> kanonisch. Dieses Dokument bleibt die historische öffentliche VPS-Variante,
+> kein Pi-Default. Die Inventur vom 3. Oktober 2026 belegte für den damaligen
+> VPS-Dienst Codex 0.160.0 mit PATH-Drop-in
+> und einer dokumentierten Adapterabweichung: [Inventar](vps-inventory-2026-10-03.md).
+> Full Access/never/passwortloses sudo gelten aufgrund [ADR 0005](decisions/0005-personal-trusted-host.md)
+> bewusst auch für den zukünftigen persönlichen Pi, nicht nur für einen
+> entbehrlichen Test-VPS. Dessen Netzwerkgrenze bleibt privat; die folgenden
+> öffentlichen DNS-/Firewall-Schritte nicht auf den Pi übertragen.
+> Auch die damalige Codex-Version ist kein Pi-Default. Neue Hosts erhalten die
+> zum Installationszeitpunkt bewusst ausgewählte aktuelle/unterstützte ARM64-Version
+> mit allen benötigten Helpern aus demselben vollständigen Release. Maßgeblich
+> sind tatsächlicher Dienstbinary-Pfad und Abnahmeprotokoll, keine globale CLI.
+
 Stand: 25. September 2026. Deployment auf dem persönlichen Test-VPS.
 
 Android → `https://pad.feichti.dev` → Caddy → `127.0.0.1:8765` → privater
@@ -16,7 +30,8 @@ festlegen. Dann mit dem vorhandenen SSH-Zugang ausschließlich den Bestand prüf
 ssh <VPS-SSH-Ziel> 'id; uname -a; python3 --version; command -v codex; codex --version; command -v caddy; systemctl --version; systemctl status codexpad caddy --no-pager; ss -ltnp'
 ```
 
-Prüfen: Python 3.12+, systemd, Codex-Version (bisheriger Protokollnachweis: 0.156.1),
+Prüfen: Python 3.12+, systemd, tatsächlich vom Dienst gestartetes Codex-Binary
+(Pfad und Version; eine globale Shell-CLI ist kein Dienstnachweis),
 Caddy 2, bestehender Dienst/Port 8765, bestehende Caddy-Sites, gewähltes Dienstkonto,
 Workspace-Speicherort und freier HTTPS-Port. Nicht blind einen vorhandenen Dienst oder
 eine bestehende Caddyfile überschreiben. Erst danach folgen die einmaligen Änderungen.
@@ -30,7 +45,8 @@ Die Vorlage verwendet `/opt/codexpad` (Code, root-owned), `/var/lib/codexpad`
 Für einen bestehenden dedizierten persönlichen Dienstbenutzer können Pfade und User
 bewusst angepasst werden. Nicht unter root betreiben.
 
-1. Python, Caddy 2 und die mit diesem API-Protokoll geprüfte Codex-CLI installieren.
+1. Historische VPS-Installationsvorlage: Python, Caddy 2 und ein bewusst
+   ausgewähltes, mit diesem API-Protokoll zu prüfendes Codex-Release installieren.
    Das Standalone-Release muss **vollständig** installiert werden. Das Hauptbinary
    erwartet `codex-code-mode-host` als ausführbaren Nachbarn; ein einzelnes nach
    `/usr/local/bin` kopiertes `codex` reicht nicht. Die Vorlage installiert das

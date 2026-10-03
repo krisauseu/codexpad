@@ -1,5 +1,15 @@
 # Codex als Agent für einen nativen Client
 
+> Betriebsfortschreibung 3. Oktober 2026: Die datierte Inventur belegte beim
+> damaligen VPS-Dienst Codex 0.160.0 als privaten stdio-Kindprozess des Python-Adapters, Full Access
+> und never, ohne `experimentalApi`-Opt-in. [Ist-Inventar](../vps-inventory-2026-10-03.md),
+> [kanonisches Hostsetup](../../HOST_SETUP.md), [Trusted-Host-ADR 0005](../decisions/0005-personal-trusted-host.md).
+> Die folgenden historischen Schema-/Laufzeitbefunde bleiben versionsgebunden;
+> sie sind kein ARM64-/0.160.0-End-to-End-Nachweis. Für neue Pi-Hosts keine
+> historische Versionsnummer übernehmen: aktuelle/unterstützte ARM64-Version
+> bewusst auswählen, vollständiges Release samt passenden Helpern installieren
+> und tatsächliches Dienstbinary/Helper protokollieren und abnehmen.
+
 Stand: 18. September 2026. Konsolidierte Research; keine Implementierung. Vier begrenzte Architekturentscheidungen stehen in den [ADRs](../decisions/README.md).
 
 ## Evidenz und Gültigkeit

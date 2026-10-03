@@ -18,6 +18,8 @@ import dev.codexpad.network.UploadImage
 import dev.codexpad.network.UploadText
 import dev.codexpad.network.ApiException
 import dev.codexpad.network.connectionError
+import dev.codexpad.network.WorkspaceInspection
+import dev.codexpad.network.workspaceError
 import dev.codexpad.settings.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +71,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     }
 
     fun openSettings() {
-        if (ready && !creating && !sending) {
+        if (ready && !creating && !sending && !workspaceBusy) {
             listing?.cancel()
             showSettings = true
         }
@@ -166,6 +168,14 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         private set
     var error by mutableStateOf<String?>(null)
         private set
+    var workspaceBusy by mutableStateOf(false)
+        private set
+    var workspaceActionError by mutableStateOf<String?>(null)
+        private set
+    var workspaceNotice by mutableStateOf<String?>(null)
+        private set
+    var deleteInspection by mutableStateOf<WorkspaceInspection?>(null)
+        private set
     var creating by mutableStateOf(false)
         private set
     var sending by mutableStateOf(false)
@@ -246,6 +256,8 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     }
 
     fun selectWorkspace(selected: Workspace) {
+        if (workspaceBusy) return
+        workspaceNotice = null
         workspace = selected
         saved["workspaceId"] = selected.id
         saved["workspaceName"] = selected.name
@@ -281,7 +293,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
     }
 
     fun reload() {
-        if (!ready || !hasToken || showSettings) return
+        if (!ready || !hasToken || showSettings || workspaceBusy) return
         listing?.cancel()
         val selected = workspace
         listing = viewModelScope.launch {
@@ -295,6 +307,70 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) { error = connectionError(failure) }
             finally { loading = false }
+        }
+    }
+
+    fun beginWorkspaceAction() {
+        workspaceActionError = null
+        workspaceNotice = null
+        deleteInspection = null
+    }
+
+    fun inspectWorkspace(selected: Workspace) {
+        if (workspaceBusy) return
+        beginWorkspaceAction()
+        workspaceBusy = true
+        viewModelScope.launch {
+            try { deleteInspection = api.inspectWorkspace(selected.id) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { workspaceActionError = workspaceError(failure) }
+            finally { workspaceBusy = false }
+        }
+    }
+
+    fun changeWorkspace(selected: Workspace?, name: String, delete: Boolean = false, onSuccess: () -> Unit) {
+        if (workspaceBusy || workspace != null || showSettings) return
+        if (!delete) workspaceNameError(name)?.let { workspaceActionError = it; return }
+        val inspection = deleteInspection
+        if (delete && (selected == null || inspection == null || inspection.threads > 0)) return
+        listing?.cancel()
+        workspaceBusy = true
+        workspaceActionError = null
+        workspaceNotice = null
+        error = null
+        viewModelScope.launch {
+            var changed = false
+            try {
+                when {
+                    delete -> api.deleteWorkspace(selected!!.id, inspection!!)
+                    selected == null -> api.createWorkspace(name)
+                    else -> api.renameWorkspace(selected.id, name)
+                }
+                changed = true
+                // Invalidate immediately: a failed refresh must not retain removed entries.
+                workspaces = emptyList()
+                onSuccess()
+                workspaceNotice = when {
+                    delete -> "Workspace gelöscht."
+                    selected == null -> "Workspace angelegt."
+                    else -> "Workspace umbenannt."
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                workspaceActionError = workspaceError(failure) +
+                    if (failure !is ApiException) " Ergebnis unbestätigt. Liste prüfen; keine automatische Wiederholung." else ""
+            } finally {
+                // Also reconcile lost responses; never retry a filesystem mutation.
+                workspaces = emptyList()
+                try { workspaces = api.workspaces() }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (failure: Exception) {
+                    error = "Workspace-Liste konnte nicht aktualisiert werden: ${connectionError(failure)}"
+                }
+                loading = false
+                workspaceBusy = false
+                if (changed) workspaceActionError = null
+            }
         }
     }
 

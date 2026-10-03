@@ -30,6 +30,9 @@ class FixtureBackend:
             self.subscribers.setdefault(thread_id, set()).add(listener)
         return listener
 
+    def session_threads(self):
+        return []  # No on-disk Codex rollouts in this deterministic backend.
+
     def unsubscribe(self, thread_id, listener):
         with self.lock:
             self.subscribers.get(thread_id, set()).discard(listener)
@@ -47,7 +50,9 @@ class FixtureBackend:
                                   "supportedReasoningEfforts": [{"reasoningEffort": "custom", "description": "Custom"}],
                                   "defaultReasoningEffort": "custom"}], "nextCursor": None}
             if method == "thread/list":
-                return {"data": copy.deepcopy([t for t in self.threads.values() if t["cwd"] == params["cwd"]]), "nextCursor": None}
+                return {"data": copy.deepcopy([t for t in self.threads.values()
+                    if (not params.get("cwd") or t["cwd"] == params["cwd"])
+                    and t.get("archived", False) == params.get("archived", False)]), "nextCursor": None}
             if method == "thread/start":
                 tid = f"fixture-thread-{len(self.threads) + 1}"
                 thread = {"id": tid, "cwd": params["cwd"], "preview": "", "status": {"type": "idle"}, "turns": []}

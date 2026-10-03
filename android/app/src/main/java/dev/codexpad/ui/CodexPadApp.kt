@@ -68,7 +68,7 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                 else if (vm.workspace != null && !vm.showSettings) TextButton(onClick = vm::back) { Text("Zurück") }
             }, actions = {
                 if (!vm.showSettings) TextButton(onClick = vm::openSettings,
-                    enabled = vm.ready && !vm.creating && !vm.sending) { Text("Einstellungen") }
+                    enabled = vm.ready && !vm.creating && !vm.sending && !vm.workspaceBusy) { Text("Einstellungen") }
             })
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
@@ -91,7 +91,7 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(onClick = vm::reload, enabled = !vm.loading) { Text("Aktualisieren") }
+                            OutlinedButton(onClick = vm::reload, enabled = !vm.loading && !vm.workspaceBusy) { Text("Aktualisieren") }
                             if (vm.workspace != null) Button(onClick = vm::createThread,
                                 enabled = !vm.creating && !vm.createUncertain) {
                                 Text(if (vm.creating) "Wird angelegt …" else "Neuer Thread")
@@ -100,20 +100,7 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
                         if (vm.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                         vm.error?.let { ErrorText(it) }
                         if (vm.workspace == null) {
-                            if (!vm.loading && vm.error == null && vm.workspaces.isEmpty())
-                                EmptyState("Noch keine Workspaces", "Deine Projekte erscheinen hier, sobald sie auf dem Server eingerichtet sind.")
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                items(vm.workspaces, key = { it.id }) { ws ->
-                                    Card(onClick = { vm.selectWorkspace(ws) }, modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Text(ws.name, style = MaterialTheme.typography.titleMedium)
-                                            if (ws.id != ws.name) Text(ws.id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text("Threads ansehen →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                        }
-                                    }
-                                }
-                            }
+                            WorkspaceOverview(vm)
                         } else {
                             if (vm.createUncertain) {
                                 ErrorText("Eine Thread-Anlage ist unbestätigt. Erst die aktualisierte Liste prüfen.")

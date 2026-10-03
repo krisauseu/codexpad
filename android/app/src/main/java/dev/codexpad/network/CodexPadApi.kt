@@ -17,7 +17,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import kotlin.coroutines.resumeWithException
 
-class ApiException(val status: Int, message: String) : IOException(message)
+class ApiException(val status: Int, message: String, val code: String? = null) : IOException(message)
+data class WorkspaceInspection(val files: Int, val directories: Int, val threads: Int, val inspection: String)
 data class UploadImage(val name: String, val mimeType: String, val bytes: ByteArray)
 data class UploadText(val name: String, val mimeType: String, val bytes: ByteArray)
 
@@ -56,7 +57,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
     private suspend fun json(request: Request): JSONObject = withContext(Dispatchers.IO) { client.newCall(request).await().use {
         val raw = it.body?.string().orEmpty()
         if (!it.isSuccessful) throw ApiException(it.code,
-            httpErrorMessage(it.code))
+            httpErrorMessage(it.code), runCatching { JSONObject(raw).optString("code") }.getOrNull())
         JSONObject(raw)
     } }
 
@@ -64,6 +65,21 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
     override suspend fun health() = json(request("health")).getString("status")
     override suspend fun workspaces() = json(request("workspaces")).getJSONArray("workspaces").objects()
         .map { Workspace(it.getString("id"), it.getString("name")) }
+    suspend fun createWorkspace(name: String) {
+        json(request("workspaces", body = JSONObject().put("name", name.trim())))
+    }
+    suspend fun renameWorkspace(id: String, name: String) {
+        json(request("workspaces", id, "rename", body = JSONObject().put("name", name.trim())))
+    }
+    suspend fun inspectWorkspace(id: String): WorkspaceInspection {
+        val value = json(request("workspaces", id, "inspection"))
+        return WorkspaceInspection(value.getInt("files"), value.getInt("directories"),
+            value.getInt("threads"), value.getString("inspection"))
+    }
+    suspend fun deleteWorkspace(id: String, inspection: WorkspaceInspection) {
+        json(request("workspaces", id, "delete", body = JSONObject()
+            .put("confirmation", id).put("inspection", inspection.inspection)))
+    }
     override suspend fun threads(workspaceId: String) = json(request("workspaces", workspaceId, "threads"))
         .getJSONArray("threads").objects().map(Wire::thread)
     override suspend fun createThread(workspaceId: String) = Wire.threadEnvelope(
@@ -181,4 +197,13 @@ fun connectionError(error: Exception): String = when (error) {
     is java.net.ConnectException -> "Server nicht erreichbar. Adresse und Serverbetrieb prüfen."
     is java.net.SocketTimeoutException, is kotlinx.coroutines.TimeoutCancellationException -> "Zeitüberschreitung. Internetverbindung und Server prüfen."
     else -> "Verbindung fehlgeschlagen. Server-URL und Internetverbindung prüfen."
+}
+
+fun workspaceError(error: Exception): String = when ((error as? ApiException)?.code) {
+    "invalid_workspace_name" -> "Ungültiger Workspace-Name. Bitte die Namensregeln beachten."
+    "workspace_exists" -> "Dieser Workspace-Name ist bereits vorhanden."
+    "workspace_has_threads" -> "Dieser Workspace hat Threads. Umbenennen und Löschen sind zum Schutz ihrer gespeicherten Pfade gesperrt, auch bei archivierten Threads."
+    "workspace_changed" -> "Der Inhalt hat sich geändert. Bitte den Dialog schließen und erneut prüfen."
+    "workspace_mount" -> "Dieser Workspace enthält ein eingebundenes Verzeichnis und kann nicht sicher verändert werden."
+    else -> connectionError(error)
 }

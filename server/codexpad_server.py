@@ -19,6 +19,9 @@ import subprocess
 import sys
 import tempfile
 import threading
+import contextlib
+import ctypes
+import shutil
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
@@ -147,6 +150,7 @@ class UserInputs:
 
 class AppServer:
     def __init__(self):
+        self.codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser().resolve()
         self.proc = subprocess.Popen(["codex", "app-server", "--stdio",
                                       "-c", "sandbox_mode=\"danger-full-access\"",
                                       "-c", "approval_policy=\"never\"",
@@ -254,6 +258,49 @@ class AppServer:
         with self.lock:
             self.subscribers.get(thread_id, set()).discard(listener)
 
+    def session_threads(self):
+        """Read-only ownership headers, including empty persisted sessions.
+
+        Codex 0.156.1 thread/list omits empty rollouts even with useStateDbOnly.
+        Header paths are conservative safety references; thread/read remains the
+        authority for the displayed thread. Never edit rollouts or the state DB.
+        """
+        entries = []
+        def failed_walk(error):
+            raise error
+        try:
+            for folder, archived in (("sessions", False), ("archived_sessions", True)):
+                root = self.codex_home / folder
+                if not root.exists():
+                    continue
+                if root.is_symlink():
+                    raise ValueError()
+                for directory, folders, files in os.walk(root, followlinks=False, onerror=failed_walk):
+                    if any((Path(directory) / name).is_symlink() for name in folders):
+                        raise ValueError()
+                    for name in files:
+                        if not name.endswith(".jsonl"):
+                            continue
+                        path = Path(directory) / name
+                        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                        with os.fdopen(fd, "rb") as source:
+                            if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
+                                raise ValueError()
+                            line = source.readline(8 * 1024 * 1024 + 1)
+                        if len(line) > 8 * 1024 * 1024:
+                            raise ValueError()
+                        record = json.loads(line)
+                        header = record["payload"]
+                        if (record["type"] != "session_meta" or not isinstance(header.get("id"), str)
+                                or not header["id"] or not isinstance(header.get("cwd"), str)
+                                or not Path(header["cwd"]).is_absolute()):
+                            raise ValueError()
+                        entries.append({"id": header["id"], "cwd": header["cwd"], "archived": archived,
+                                        "source": header.get("source")})
+        except (OSError, ValueError, KeyError, TypeError):
+            raise ApiError(502, "Cannot verify persisted thread workspace ownership") from None
+        return entries
+
 
 def workspaces():
     if not ROOT.is_dir():
@@ -263,6 +310,140 @@ def workspaces():
 
 
 APP = None
+WORKSPACE_LOCK = threading.RLock()
+THREAD_SOURCES = ["cli", "vscode", "exec", "appServer", "subAgent", "subAgentReview",
+                  "subAgentCompact", "subAgentThreadSpawn", "subAgentOther", "unknown"]
+
+
+def workspace_name(value):
+    if not isinstance(value, str):
+        raise ApiError(400, "Invalid workspace name")
+    name = value.strip()
+    def alnum(c):
+        return c.isalpha() or c.isdecimal()
+    if (not 1 <= len(name) <= 80 or not alnum(name[0]) or name.endswith(".") or
+            ".." in name or any(not (alnum(c) or c in " _-.") for c in name) or
+            len(name.encode("utf-8")) > 200):
+        raise ApiError(400, "Invalid workspace name")
+    return name
+
+
+@contextlib.contextmanager
+def workspace_root():
+    # All filesystem mutations are relative to this trusted directory descriptor.
+    with WORKSPACE_LOCK:
+        fd = os.open(ROOT, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            yield fd
+        except FileExistsError:
+            raise ApiError(409, "Workspace name already exists") from None
+        except FileNotFoundError:
+            raise ApiError(404, "Unknown workspace") from None
+        except OSError:
+            raise ApiError(409, "Workspace filesystem changed or is inaccessible") from None
+        finally:
+            os.close(fd)
+
+
+def workspace_threads():
+    """Complete safety inventory, unlike the UI's interactive cwd-filtered list.
+
+    Fail closed on a backend/pagination error. No Codex session files are edited.
+    """
+    entries = dict(APP.fresh)
+    for archived in (False, True):
+        cursor, seen = None, set()
+        while True:
+            page = APP.call("thread/list", {"archived": archived, "sourceKinds": THREAD_SOURCES,
+                                           "modelProviders": [], "limit": 100, "cursor": cursor})
+            for entry in page["data"]:
+                if not isinstance(entry.get("cwd"), str) or not Path(entry["cwd"]).is_absolute():
+                    raise ApiError(502, "Cannot verify thread workspace ownership")
+                entries[entry["id"]] = entry
+            cursor = page.get("nextCursor")
+            if not cursor:
+                break
+            if cursor in seen:
+                raise ApiError(502, "Thread pagination did not advance")
+            seen.add(cursor)
+    # Keep historical header cwd references too: resume overrides are not a
+    # transactional migration of all stored paths within a session.
+    return list(entries.values()) + APP.session_threads()
+
+
+def associated_threads(name, entries):
+    path = ROOT / name
+    # A cwd through an internal symlink still depends on that workspace even if
+    # its resolved destination lies outside it. Also catch external cwd aliases.
+    return list({t["id"]: t for t in entries
+                 if Path(os.path.abspath(t["cwd"])).is_relative_to(path)
+                 or Path(t["cwd"]).resolve().is_relative_to(path)}.values())
+
+
+def require_no_threads(name, entries):
+    if associated_threads(name, entries):
+        raise ApiError(409, "Workspace has threads; rename and delete are blocked")
+
+
+def require_available_name(fd, name):
+    try:
+        os.stat(name, dir_fd=fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    raise ApiError(409, "Workspace name already exists")
+
+
+def workspace_inventory(fd, name, entries):
+    child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    manifest, files, folders = [], 0, 0
+    def walk(directory, relative):
+        nonlocal files, folders
+        for entry in sorted(os.listdir(directory)):
+            info = os.stat(entry, dir_fd=directory, follow_symlinks=False)
+            manifest.append((relative + entry, info.st_dev, info.st_ino, info.st_mode,
+                             info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+            if stat.S_ISDIR(info.st_mode):
+                folders += 1
+                nested = os.open(entry, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
+                try:
+                    if os.fstat(nested).st_dev != os.fstat(fd).st_dev:
+                        raise ApiError(409, "Mounted directories cannot be managed")
+                    walk(nested, relative + entry + "/")
+                finally:
+                    os.close(nested)
+            else:
+                files += 1  # Symlinks are counted, never followed.
+    try:
+        info = os.fstat(child)
+        if info.st_dev != os.fstat(fd).st_dev:
+            raise ApiError(409, "Mounted directories cannot be managed")
+        # Linux bind mounts can share st_dev. Refuse mounts anywhere in this tree.
+        if sys.platform.startswith("linux"):
+            for line in Path("/proc/self/mountinfo").read_text().splitlines():
+                mount = re.sub(r"\\([0-7]{3})", lambda m: chr(int(m[1], 8)), line.split()[4])
+                if Path(mount).is_relative_to(ROOT / name):
+                    raise ApiError(409, "Mounted directories cannot be managed")
+        walk(child, "")
+        digest = hashlib.sha256(json.dumps([name, info.st_dev, info.st_ino,
+            info.st_mtime_ns, info.st_ctime_ns, manifest], ensure_ascii=False).encode()).hexdigest()
+        return {"files": files, "directories": folders,
+                "threads": len(associated_threads(name, entries)), "inspection": digest}
+    finally:
+        os.close(child)
+
+
+def rename_workspace(fd, source, target):
+    # Atomic no-replace, including a concurrently created empty target directory.
+    libc = ctypes.CDLL(None, use_errno=True)
+    if sys.platform.startswith("linux") and hasattr(libc, "renameat2"):
+        result = libc.renameat2(fd, source.encode(), fd, target.encode(), 1)  # RENAME_NOREPLACE
+    elif sys.platform == "darwin" and hasattr(libc, "renameatx_np"):
+        result = libc.renameatx_np(fd, source.encode(), fd, target.encode(), 4)  # RENAME_EXCL
+    else:
+        raise ApiError(503, "Atomic workspace rename is unavailable on this host")
+    if result != 0:
+        code = ctypes.get_errno()
+        raise OSError(code, os.strerror(code))
 
 
 def workspace(workspace_id):
@@ -596,16 +777,58 @@ class Handler(BaseHTTPRequestHandler):
             return 200, {"models": models()}
         if method == "GET" and parts == ["workspaces"]:
             return 200, {"workspaces": [{"id": key, "name": key} for key in sorted(workspaces())]}
+        if method == "POST" and parts == ["workspaces"]:
+            payload = self.read_json()
+            if set(payload) != {"name"}:
+                raise ApiError(400, "Invalid workspace name")
+            name = workspace_name(payload["name"])
+            with workspace_root() as fd:
+                require_available_name(fd, name)
+                require_no_threads(name, workspace_threads())
+                os.mkdir(name, mode=0o700, dir_fd=fd)
+            return 201, {"workspace": {"id": name, "name": name}}
+        if len(parts) == 3 and parts[0] == "workspaces" and parts[2] in ("inspection", "rename", "delete"):
+            name = workspace_name(parts[1])
+            if name != parts[1]:
+                raise ApiError(400, "Invalid workspace name")
+            if method == "GET" and parts[2] == "inspection":
+                with workspace_root() as fd:
+                    return 200, workspace_inventory(fd, name, workspace_threads())
+            if method == "POST" and parts[2] in ("rename", "delete"):
+                payload = self.read_json()
+                with workspace_root() as fd:
+                    entries = workspace_threads()
+                    inventory = workspace_inventory(fd, name, entries)
+                    require_no_threads(name, entries)
+                    if parts[2] == "rename":
+                        if set(payload) != {"name"}:
+                            raise ApiError(400, "Invalid workspace name")
+                        target = workspace_name(payload["name"])
+                        if target != name:
+                            require_available_name(fd, target)
+                            require_no_threads(target, entries)
+                            rename_workspace(fd, name, target)
+                        return 200, {"workspace": {"id": target, "name": target}}
+                    if set(payload) != {"confirmation", "inspection"} or payload["confirmation"] != name:
+                        raise ApiError(400, "Deletion requires workspace confirmation")
+                    if payload["inspection"] != inventory["inspection"]:
+                        raise ApiError(409, "Workspace contents changed; inspect again")
+                    if not shutil.rmtree.avoids_symlink_attacks:
+                        raise ApiError(503, "Safe deletion unavailable on this host")
+                    shutil.rmtree(name, dir_fd=fd)
+                    return 200, {}
         if len(parts) == 3 and parts[0] == "workspaces" and parts[2] == "threads":
             cwd = workspace(parts[1])
             if method == "POST":
                 if self.read_json():
                     raise ApiError(400, "Thread creation accepts an empty JSON object")
-                result = APP.call("thread/start", {"cwd": str(cwd),
-                                                   "approvalPolicy": "never",
-                                                   "sandbox": "danger-full-access"})
-                t = result["thread"]
-                APP.fresh[t["id"]] = t
+                with WORKSPACE_LOCK:
+                    cwd = workspace(parts[1])
+                    result = APP.call("thread/start", {"cwd": str(cwd),
+                                                       "approvalPolicy": "never",
+                                                       "sandbox": "danger-full-access"})
+                    t = result["thread"]
+                    APP.fresh[t["id"]] = t
                 return 201, {"thread": t}
             if method == "GET":
                 all_threads, cursor = [], None
@@ -617,6 +840,14 @@ class Handler(BaseHTTPRequestHandler):
                         break
                 ids = {t["id"] for t in all_threads}
                 all_threads += [t for t in APP.fresh.values() if t.get("cwd") == str(cwd) and t["id"] not in ids]
+                ids.update(t["id"] for t in all_threads)
+                for entry in APP.session_threads():
+                    if (not entry["archived"] and entry.get("source") in ("cli", "vscode", "appServer")
+                            and entry["cwd"] == str(cwd) and entry["id"] not in ids):
+                        current = APP.call("thread/read", {"threadId": entry["id"], "includeTurns": False})["thread"]
+                        if current.get("cwd") == str(cwd):
+                            all_threads.append(current)
+                            ids.add(current["id"])
                 return 200, {"threads": all_threads}
         if len(parts) >= 2 and parts[0] == "threads":
             thread_id = parts[1]
@@ -753,7 +984,13 @@ class Handler(BaseHTTPRequestHandler):
             if result is not None:
                 self.send_json(*result)
         except ApiError as error:
-            self.send_json(error.status, {"error": error.message})
+            codes = {"Invalid workspace name": "invalid_workspace_name",
+                     "Workspace name already exists": "workspace_exists",
+                     "Workspace has threads; rename and delete are blocked": "workspace_has_threads",
+                     "Workspace contents changed; inspect again": "workspace_changed",
+                     "Mounted directories cannot be managed": "workspace_mount"}
+            self.send_json(error.status, {"error": error.message,
+                                         "code": codes.get(error.message)})
         except Exception as error:
             print("Request failed", file=sys.stderr)
             self.send_json(500, {"error": "Internal server error"})

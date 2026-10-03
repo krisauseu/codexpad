@@ -37,6 +37,53 @@ PYTHON
 Android-Debug-Einstellungen: `http://127.0.0.1:8765` und dasselbe Token.
 Für ADB-Reverse bleibt `adb reverse tcp:8765 tcp:8765` möglich.
 
+## Workspace-Verwaltung
+
+Alle Aktionen nutzen dieselbe authentifizierte HTTP-API und den bestehenden
+App-Server-Adapter. Der konfigurierte Workspace-Root ist auf dem VPS
+`/srv/codexpad/workspaces/`.
+
+| Route | Anfrage / Antwort |
+| --- | --- |
+| `POST /workspaces` | `{"name":"beispiel"}` → 201, `workspace: {id, name}` |
+| `POST /workspaces/{id}/rename` | `{"name":"neuer-name"}` → 200, `workspace: {id, name}` |
+| `GET /workspaces/{id}/inspection` | 200, `files`, `directories`, `threads`, `inspection` |
+| `POST /workspaces/{id}/delete` | `{"confirmation":"beispiel","inspection":"…"}` → 200, `{}` |
+
+Namen werden getrimmt: 1–80 Unicode-Zeichen, höchstens 200 UTF-8-Bytes;
+Buchstaben/Ziffern sowie Leerzeichen, `_`, `-` und einzelne Punkte.
+Das erste Zeichen muss Buchstabe/Ziffer sein, ein Punkt am Ende und `..` sind
+verboten. Slash, Backslash, Steuerzeichen, Shell-Zeichen und Prozent-Escapes
+sind damit ausgeschlossen. Fremde JSON-Felder werden abgewiesen. Quellen-IDs
+müssen bereits exakt dem gültigen Namen entsprechen.
+
+Create verwendet exklusives `mkdir` mit Modus 0700. Rename verwendet
+`renameat2(RENAME_NOREPLACE)` unter Linux bzw. `renameatx_np(RENAME_EXCL)` unter
+macOS. Es wird keine `AGENTS.md` angelegt oder verändert. Dateisystemoperationen
+arbeiten relativ zu einem geöffneten Root-Verzeichnis und folgen keinen Symlinks.
+Delete zählt Dateien/Links und Unterordner; die Bestätigung bindet sich an deren
+Metadaten-Fingerprint. Geänderter Inhalt verlangt eine neue Bestätigung.
+Das symlinksichere `shutil.rmtree` entfernt ausschließlich den bestätigten Ordner;
+Mounts im Workspace sind gesperrt. Keine Shell-Aufrufe mit Workspace-Namen.
+
+**Workspaces mit Threads können weder umbenannt noch gelöscht werden.** Codex
+speichert absolute CWDs und weitere absolute Verlaufspfade. `thread/resume.cwd`
+ist keine atomare Migration dieser Daten. Die Prüfung umfasst alle Quellen,
+Provider, paginierten und archivierten Threads, Unterverzeichnisse und den
+Fresh-Cache. Zusätzlich liest der bestehende Adapter ausschließlich die ersten
+`session_meta`-Zeilen unter `$CODEX_HOME/sessions` und `archived_sessions`, weil
+Codex 0.156.1 leere persistierte Threads bei `thread/list` auslässt. Unlesbare
+Metadaten oder Backendfehler blockieren Änderungen. Es werden keine Codex-
+Sessiondateien oder Datenbanken verändert oder gelöscht.
+
+Die vorhandene Thread-Liste ergänzt solche ausgelassenen interaktiven Sessions
+per regulärem `thread/read`, ohne archivierte oder Subagent-Sessions anzuzeigen.
+Workspace-Mutationen und die vorhandene Thread-Anlage teilen einen Lock.
+Bekannte Fehler liefern feste `code`-Werte; Android übersetzt ausschließlich
+diese erlaubten Werte, ohne beliebige Servertexte oder Tokens anzuzeigen.
+
+[Implementierung, Tests und Tablet-Nachweis](../docs/verification-workspaces.md).
+
 ## Turn-Abbruch
 
 `POST /threads/{threadId}/turns/{turnId}/interrupt` akzeptiert ausschließlich `{}`.

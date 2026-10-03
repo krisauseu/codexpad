@@ -1,5 +1,12 @@
 # Android-Plattform: native Tablet-Oberfläche
 
+> Betriebsfortschreibung 3. Oktober 2026: Die implementierte App verwendet
+> Kotlin/Compose und OkHttp HTTP/SSE, bereits Target SDK 37. Direkter LAN-HTTP-
+> Zugriff benötigt noch NSC-/URLpolicyänderung; unter Android 17 außerdem
+> `ACCESS_LOCAL_NETWORK` mit Runtimebehandlung. Die ältere Exploration unten
+> bleibt historisch. [Konkrete Codebefunde und Pi-Transport](../../HOST_SETUP.md#10-netzwerk-und-android-verbindung),
+> [offizielle LAN-Regel](https://developer.android.com/privacy-and-security/local-network-permission).
+
 Stand und Quellenabruf: **18. September 2026**. Research, keine Stack- oder Produktentscheidung. Die verlinkten Primärquellen wurden für diese Notiz gelesen; Bibliotheken wurden weder installiert noch auf einem Gerät erprobt. „Fakt“ bezeichnet dokumentiertes Verhalten, „Hypothese“ eine Folgerung für CodexPad, „offen“ einen noch notwendigen Nachweis. API-/Bibliotheksversionen müssen vor einem Prototyp erneut geprüft werden.
 
 ## Ergebnis

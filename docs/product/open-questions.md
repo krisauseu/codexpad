@@ -1,5 +1,27 @@
 # Offene Fragen
 
+## Fortschreibung für den persönlichen Host, 3. Oktober 2026
+
+Der ältere Fragekatalog unten bleibt mit seinem damaligen Versions-/Trustumfang
+erhalten. [VPS-Inventar](../vps-inventory-2026-10-03.md),
+[HOST_SETUP](../../HOST_SETUP.md) und ADR 0005/0006 konkretisieren den inzwischen
+laufenden persönlichen Modus; keine allgemeine v0.1-/Mehrnutzerfreigabe.
+
+| Frage | Persönlicher Betriebsstand / Rest |
+| --- | --- |
+| P3, S1 | Eigener Trusted Linux-Host, Single User; bevorzugt Pi 4 ARM64. Full Access/never/sudo sind ausdrückliche Betreiberentscheidung (Accepted ADR 0005). |
+| C1/C2 | Tatsächlicher Dienst 0.160.0, stdio, keine `experimentalApi`-Capability; UserInput-Feature aktiv. Versionsgepinntes Setup, ARM64-/Upgrade-Schemaabnahme noch offen. |
+| C5/S4 | Host hält ChatGPT-Dateicredentials; Dienstkonto angemeldet. Frischer Pi-Device-Login noch praktisch zu testen; keine Accountcredentials in Android nötig. |
+| R1/S2 | VPS: HTTPS/Caddy → Token-Adapter Loopback → stdio. Clienttoken in Keystore; Pi-Eingang soll privat sein. LAN-HTTP-Implementierung/Abnahme Proposed ADR 0006. |
+| S3/S8 | Für diesen persönlichen Modus keine Workspace-/Secretisolation vor dem Trusted Agent gewünscht. CWD/Routen sind keine OS-Grenze. Restriktive frühere Spikekriterien bleiben für andere Trustmodelle offen. |
+| A1/A3 | Kotlin/Compose, OkHttp JSON/Multipart/SSE, min 26/target 37 im Code. Kein SSH/WebSocket in der nativen API-Verbindung. LAN-NSC/URLpolicy und Android-17-Runtimeberechtigung fehlen. |
+| S6/U3 | Gewöhnliche Shell-/Datei-/Netzwerk-Approvals nicht ans Tablet; fachliche Rückfragen separat. Drittanbieter-Sicherheitsmechanismen bleiben wirksam. |
+
+Offen für Pi: reale ARM64-Tools/Helper, frischer Accountlogin, sudo/Netz-/Außenwrite,
+Autostart/Reboot, Tablet-LAN-HTTP/HTTPS, Android-17-Permission, negative externe
+Erreichbarkeit, SSE/History/Artefakte und repräsentative Dauerlast. Der folgende
+historische Support-/Isolationskatalog wird dadurch nicht pauschal geschlossen.
+
 Stand: 18. September 2026, nach Konsolidierung beider Linux-Spikes und Remote-Trust-Research. Laufzeitantworten gelten für den geprüften Umfang mit Codex 0.154.0; lokale Schema-/Hilfebefunde zu 0.155.0 sind getrennt dokumentiert. Der Produkt-Supportvertrag ist noch offen.
 
 - **[V0]** zwingend vor v0.1 beantworten, sicherheitsrelevante Voraussetzungen vor dem entsprechenden verbundenen Prototyp. Eine bloße Annahme schließt die Frage nicht.

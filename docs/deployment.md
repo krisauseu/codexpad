@@ -1,5 +1,14 @@
 # Persönlicher HTTPS-Betrieb auf pad.feichti.dev
 
+> Fortschreibung 3. Oktober 2026: Für neue Hosts ist [HOST_SETUP](../HOST_SETUP.md)
+> kanonisch. Dieses Dokument bleibt die historische öffentliche VPS-Variante,
+> kein Pi-Default. Der VPS verwendet tatsächlich Codex 0.160.0 mit PATH-Drop-in
+> und einer dokumentierten Adapterabweichung: [Inventar](vps-inventory-2026-10-03.md).
+> Full Access/never/passwortloses sudo gelten aufgrund [ADR 0005](decisions/0005-personal-trusted-host.md)
+> bewusst auch für den zukünftigen persönlichen Pi, nicht nur für einen
+> entbehrlichen Test-VPS. Dessen Netzwerkgrenze bleibt privat; die folgenden
+> öffentlichen DNS-/Firewall-Schritte nicht auf den Pi übertragen.
+
 Stand: 25. September 2026. Deployment auf dem persönlichen Test-VPS.
 
 Android → `https://pad.feichti.dev` → Caddy → `127.0.0.1:8765` → privater

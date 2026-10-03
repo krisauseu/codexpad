@@ -1,5 +1,14 @@
 # CodexPad Android 0.1
 
+Host-Einrichtung und Pi-Ziel: [HOST_SETUP](../HOST_SETUP.md#10-netzwerk-und-android-verbindung).
+Stand 3. Oktober 2026: Direktes LAN-HTTP ist trotz einstellbarer Serveradresse
+noch durch URLvalidierung und Release-Cleartextpolicy blockiert; Debug erlaubt
+nur Loopback/Emulator. Die minimalen NSC-/Validatoränderungen sind dort beschrieben,
+hier noch nicht implementiert. Target SDK ist bereits 37; Android 17 benötigt
+für direkten LAN-Zugriff zusätzlich `ACCESS_LOCAL_NETWORK` samt Runtimebehandlung,
+die momentan fehlt. HTTPS bleibt konfigurierbar. Dies ist eine Android-System-
+berechtigung, keine gewöhnliche Codex-Approvalanfrage.
+
 Nativer persönlicher Single-User-Client für die vorhandene CodexPad-HTTP-API. Workspaces → Threads → Thread-Detail sowie Verbindungseinstellungen. Keine zusätzlichen Hostfähigkeiten. [Build- und Tablet-Nachweis](VERIFICATION.md).
 
 ## Lokaler Build

@@ -1,5 +1,12 @@
 # CodexPad Single-User-Server
 
+Neue Hosts: [kanonische HOST_SETUP-Anleitung](../HOST_SETUP.md), Ziel Pi 4 ARM64.
+Der Referenz-VPS läuft am 3. Oktober 2026 mit Codex **0.160.0**, eigenem
+PATH-Drop-in und [dokumentiertem Code-Overlay](../docs/vps-inventory-2026-10-03.md).
+Full Access/never und administratives sudo sind das persönliche Betriebsmodell
+gemäß ADR 0005. Direkte LAN-Bindung ist im aktuellen Adapter nicht konfigurierbar;
+HOST_SETUP dokumentiert private Proxy-/HTTPS-Wege und die noch fehlende Android-LAN-Umsetzung.
+
 Python 3.12+, `codex` im PATH und angemeldeter Codex-Account erforderlich. Keine
 Python-Pakete nötig. [HTTPS/systemd/Caddy-Deployment](../docs/deployment.md).
 

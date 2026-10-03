@@ -37,3 +37,14 @@ CWD-Prüfungen sind weiterhin keine OS-Isolation. Es werden keine zusätzlichen 
 exponiert. Authentifizierung ersetzt weder die Agent-Sandbox noch die private
 Codex-Accountanmeldung. Mehrnutzerbetrieb ist ausdrücklich nicht Teil dieser Entscheidung.
 [Deployment und verbleibende VPS-Abnahme](../deployment.md).
+
+## Explizite Fortschreibung: persönlicher Trusted Host (3. Oktober 2026)
+
+[ADR 0005](0005-personal-trusted-host.md) ersetzt für den ausdrücklich gewählten
+persönlichen Single-User-Betrieb die oben stehende Annahme einer Einschränkung
+des Agenten durch Dienstkonto/systemd und Agent-Sandbox: Full Access, never und
+passwortloses sudo sind gewollt und am VPS beobachtet. Die zentrale Entscheidung
+dieses ADR zur Host-Trust-Boundary bleibt unverändert. Historischer Text und
+Isolations-Spikes werden nicht umgedeutet. Der Pi-Control-Eingang soll privat
+bleiben; [ADR 0006](0006-private-host-transport.md) schlägt dafür konfigurierbares
+LAN-HTTP bzw. privates HTTPS vor. LAN-Androidänderung/Abnahme stehen noch aus.

@@ -1,0 +1,16 @@
+--- a/server/codexpad_server.py
++++ b/server/codexpad_server.py
+@@ -243 +243,2 @@
+-        if thread_id:
++        account_event = message.get("method") in ("account/rateLimits/updated", "account/updated")
++        if thread_id or account_event:
+@@ -245 +246,2 @@
+-                listeners = list(self.subscribers.get(thread_id, ()))
++                listeners = (list({listener for group in self.subscribers.values() for listener in group})
++                             if account_event else list(self.subscribers.get(thread_id, ())))
+@@ -252 +254 @@
+-                        listener.put_nowait({"method": "codexpad/overflow", "params": {"threadId": thread_id}})
++                        listener.put_nowait({"method": "codexpad/overflow", "params": {}})
+@@ -797,0 +800,2 @@
++        if method == "GET" and parts == ["account", "rate-limits"]:
++            return 200, APP.call("account/rateLimits/read", {})

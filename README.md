@@ -6,6 +6,22 @@ Die App verbindet sich mit einem persönlichen CodexPad-Server, der einen unver�
 
 > Das Projekt befindet sich in aktiver Entwicklung und ist derzeit auf einen persönlichen Single-User-Betrieb ausgelegt.
 
+Ein **CodexPad Host** betreibt Python-Adapter, privaten Codex App Server und lokale
+Tools/Workspaces. Die kanonische [Host-Installation](HOST_SETUP.md) bereitet einen
+frischen Linux-Host vor; bevorzugtes zukünftiges Ziel ist ein **Raspberry Pi 4
+ARM64 mit einem 64-bit-Lite-OS im LAN**. Der funktionierende VPS wurde
+[lesend inventarisiert](docs/vps-inventory-2026-10-03.md), ohne Migration.
+Pi-End-to-End und direktes Android-LAN-HTTP sind noch praktisch abzunehmen.
+
+Persönlicher Trusted Host: Codex läuft bewusst mit
+`sandbox_mode="danger-full-access"`, `approval_policy="never"` und passwortlosem
+sudo für Hostadministration. Gewöhnliche Codex-Approvals gehen nicht ans Tablet.
+Netzwerkgrenze und Token bleiben separat geschützt; der zukünftige Pi-Control-
+Eingang darf nicht versehentlich öffentlich erreichbar werden.
+[Trustentscheidung ADR 0005](docs/decisions/0005-personal-trusted-host.md),
+[Transportvorschlag ADR 0006](docs/decisions/0006-private-host-transport.md) und
+[HOST_SETUP](HOST_SETUP.md#10-netzwerk-und-android-verbindung) enthalten die Details.
+
 ## Aktueller Stand
 
 CodexPad läuft inzwischen als durchgängiger Android → HTTPS → Linux → Codex-Workflow auf einem persönlichen VPS.
@@ -237,7 +253,12 @@ VISION.md       langfristiges Zielbild
 
 ## Status
 
-**Stand: 26. September 2026**
+**Stand: 3. Oktober 2026**
+
+Der VPS-Dienst verwendet tatsächlich **Codex 0.160.0**; die globale CLI ist noch
+0.156.1. Release-Marker und deployed Adapter weichen dokumentiert voneinander ab.
+Historische Build-/Tablet-/Spike-Nachweise behalten ihre jeweilige Versionsgrenze;
+die neue Bestandsaufnahme ist kein vollständiger 0.160.0-/ARM64-Smoke-Test.
 
 Der Kernworkflow läuft auf einem persönlichen Android-Tablet gegen einen echten Remote-Linux-Host.
 

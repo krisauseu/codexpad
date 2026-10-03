@@ -14,8 +14,8 @@ android {
         minSdk = 26
         targetSdk = 37
         testInstrumentationRunner = providers.gradleProperty("codexpad.testRunner").orElse("dev.codexpad.KeystoreTestRunner").get()
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.2.0"
         buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
     buildFeatures { compose = true; buildConfig = true }

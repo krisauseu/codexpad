@@ -1,4 +1,4 @@
-# CodexPad Android 0.1.1
+# CodexPad Android 0.2.0
 
 Host-Einrichtung und praktisch bestätigter Pi-Betrieb: [HOST_SETUP](../HOST_SETUP.md#10-netzwerk-und-android-verbindung).
 Stand 3. Oktober 2026: Direktes privates LAN-HTTP ist mit ausdrücklicher,
@@ -22,11 +22,12 @@ Führt `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug` aus. APK: `and
 
 Gepinnt: AGP 9.3.3, Gradle 9.5.0, AGPs eingebautes Kotlin 2.2.10 samt Compose-Compiler 2.2.10; Compose BOM 2026.09.00, Activity 1.13.0, Lifecycle 2.11.0, Coroutines 1.10.2, OkHttp 4.12.0. minSdk 26 (Android 8), compile/targetSdk 37 (Android 17), Java/Kotlin-Bytecode 17. Keine Preview-Abhängigkeiten. Versionsgrundlagen: [AGP 9.3](https://developer.android.com/build/releases/agp-9-3-0-release-notes), [Compose BOM](https://developer.android.com/develop/ui/compose/bom), [Activity](https://developer.android.com/jetpack/androidx/releases/activity), [Lifecycle](https://developer.android.com/jetpack/androidx/releases/lifecycle).
 
-## Persönlicher Pre-Release
+## Persönlicher Release
 
-`v0.1.0` wurde als Debug-/Test-APK veröffentlicht. `v0.1.1` verwendet den
-Release-Build (nicht debuggable), weiterhin signiert mit dem vorhandenen lokalen
-Android-Testzertifikat für datenbewahrende Updates der bisherigen Installation:
+`v0.1.0` wurde als Debug-/Test-APK veröffentlicht. Seit `v0.1.1` verwenden Releases
+den nicht debuggable Release-Build und das vorhandene lokale Android-Testzertifikat
+für datenbewahrende Updates der bisherigen Installation.
+Die aktuelle Version ist `0.2.0` mit `versionCode` 3; Release-Asset: `CodexPad-0.2.0.apk`.
 
 ```sh
 android/build-local.sh :app:assembleRelease :app:lintRelease -Pcodexpad.testSignedRelease=true

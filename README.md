@@ -78,6 +78,9 @@ und Token schützen den Steuerungszugang separat.
 
 ## Aktueller Stand
 
+Aktuelle Version: [CodexPad v0.2.0](https://github.com/krisauseu/codexpad/releases/tag/v0.2.0),
+mit installierbarer `CodexPad-0.2.0.apk` als Release-Asset.
+
 Der Kernworkflow ist auf dem Linux-VPS über HTTPS und auf dem Raspberry Pi
 über direktes privates LAN mit echtem Android-Tablet bestätigt.
 

@@ -40,6 +40,10 @@ bleiben unbekannt. Nullable Turn-Zeitfelder werden aus History und Lifecycle
 
 ## Grenzen
 
+Nachtrag: [VPS-Deployment und echter Tablet-Lauf](verification-statusline-tablet.md)
+am selben Tag erfolgreich. Die folgenden Grenzen beschreiben den vorherigen
+lokalen Prüflauf.
+
 Die Laufzeitprüfungen verwenden deterministische Backends. Kein neuer echter
 Codex-Modellturn, VPS-Deployment oder Tablet-Test. Die Änderung ist lokal
 gebaut und geprüft, aber noch nicht auf Server oder Tablet ausgerollt.

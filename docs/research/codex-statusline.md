@@ -47,6 +47,14 @@ Ein abgelaufenes Resetdatum wird als veraltet angezeigt, nicht lokal auf
 
 ## Quellen
 
+Laufzeitnachtrag vom selben Tag: Der VPS mit Codex **0.156.1** liefert beim
+`turn/start` zunächst `startedAt: null`; der laufende History-Abgleich liefert
+anschließend die echte Startzeit. Das Tablet zeigte damit `0:15` während des
+laufenden Turns. Auch `completedAt` und `durationMs` wurden nach Abschluss
+geliefert. Ein Codex-Upgrade war für die geprüften Werte nicht erforderlich.
+Das reale Account-RPC lieferte das Wochenfenster in **primary** (10080 Minuten),
+mit `secondary: null`; der Client wählte es korrekt. [Prüfnachweis](../verification-statusline-tablet.md).
+
 - [Offizielle App-Server-Dokumentation](https://learn.chatgpt.com/docs/app-server): Token-Events, Account-RPCs, Limitschema, Turn-Lifecycle.
 - [Offizielle `/statusline`-Dokumentation](https://learn.chatgpt.com/docs/developer-commands?surface=cli): Auswahl der Footer-Felder; kein Statusline-RPC.
 - [TUI-Kontext- und Limitberechnung](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/tui/src/chatwidget/status_controls.rs#L405).

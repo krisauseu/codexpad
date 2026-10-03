@@ -4,7 +4,10 @@
 > Single-User-Betrieb gelten [HOST_SETUP](HOST_SETUP.md) und
 > [ADR 0005](docs/decisions/0005-personal-trusted-host.md): Trusted Host mit
 > Full Access/never/administrativem sudo, keine gewöhnlichen Tablet-Approvals.
-> Pi 4 ARM64 ist das nächste Hostziel, noch nicht praktisch abgenommen.
+> Raspberry Pi 4 mit Ubuntu 26.04.1 LTS ARM64 ist mit echtem Android-Tablet
+> über privates LAN praktisch End-to-End abgenommen: Android → Pi → CodexPad → Codex.
+> [Datierter Hostnachweis](docs/verification-pi-host-2026-10-03.md) und
+> [Trusted-LAN-/Tablet-Abnahme](android/VERIFICATION-TRUSTED-LAN.md).
 > Die folgende Vision und Research-Reihenfolge bleiben ihr historischer Stand;
 > sie definieren kein abweichendes Permissionmodell für den persönlichen Modus.
 

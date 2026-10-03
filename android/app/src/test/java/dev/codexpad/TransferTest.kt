@@ -15,7 +15,7 @@ import java.io.File
 class TransferTest {
     @Test fun longPromptsStayUnchangedAndOversizeNeverPosts() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), "token")
+            val api = CodexPadApi(server.url("/").toString(), "token", allowLocalHttp = true)
             for (length in listOf(4000, 8000, 12000, 12001)) {
                 val prefix = " \nGrüße äöü ß e\u0301 👋\n# Prompt\n```kotlin\nprintln(\"Hallo\")\n```\n"
                 val message = prefix + "😀".repeat(length - TransferPolicy.messageLength(prefix) - 2) + "\n "
@@ -64,7 +64,7 @@ class TransferTest {
 
     @Test fun htmlUploadAndDownloadPreserveNamesAndBytes() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), "token")
+            val api = CodexPadApi(server.url("/").toString(), "token", allowLocalHttp = true)
             val content = "<!doctype html>\r\n<p>Grüße 👋</p>\n<script>alert(1)</script>\n"
             for (name in listOf("seite.html", "seite.htm")) {
                 server.enqueue(MockResponse().setResponseCode(202).setBody("""{"turn":{"id":"u","status":"inProgress","items":[]}}"""))

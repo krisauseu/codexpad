@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import dev.codexpad.BuildConfig
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -27,24 +28,30 @@ class SettingsStore(context: Context, storageName: String = "connection") {
     }
 
     fun load(): ConnectionSettings {
-        val url = normalizeServerUrl(prefs.getString("url", BuildConfig.SERVER_URL)!!, BuildConfig.DEBUG)
-        val encrypted = prefs.getString("token", null) ?: return ConnectionSettings(url, "")
+        val rawUrl = prefs.getString("url", BuildConfig.SERVER_URL)!!
+        val trusted = prefs.getString("trusted_lan_http_url", null) == rawUrl
+        val url = normalizeServerUrl(rawUrl, BuildConfig.DEBUG, trusted)
+        val encrypted = prefs.getString("token", null) ?: return ConnectionSettings(url, "", trusted)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128,
             Base64.decode(prefs.getString("iv", null) ?: error("Missing IV"), Base64.NO_WRAP)))
         cipher.updateAAD(url.toByteArray(Charsets.UTF_8))
         val token = String(cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP)), Charsets.UTF_8)
         validateToken(token)
-        return ConnectionSettings(url, token)
+        return ConnectionSettings(url, token, trusted)
     }
 
     fun save(settings: ConnectionSettings) {
+        val url = normalizeServerUrl(settings.serverUrl, BuildConfig.DEBUG, settings.trustedLanHttp)
+        val trusted = settings.trustedLanHttp && !url.startsWith("https:") &&
+            isPrivateLanIpv4(url.toHttpUrl().host)
         validateToken(settings.token)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key()) // Fresh randomized IV for every write.
-        cipher.updateAAD(settings.serverUrl.toByteArray(Charsets.UTF_8))
+        cipher.updateAAD(url.toByteArray(Charsets.UTF_8))
         val encrypted = cipher.doFinal(settings.token.toByteArray(Charsets.UTF_8))
-        check(prefs.edit().putString("url", settings.serverUrl)
+        check(prefs.edit().putString("url", url)
+            .putString("trusted_lan_http_url", if (trusted) url else null)
             .putString("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
             .putString("token", Base64.encodeToString(encrypted, Base64.NO_WRAP)).commit())
     }

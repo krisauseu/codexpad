@@ -6,7 +6,9 @@ Codex **0.160.0**, mit eigenem
 PATH-Drop-in und [dokumentiertem Code-Overlay](../docs/vps-inventory-2026-10-03.md).
 Full Access/never und administratives sudo sind das persönliche Betriebsmodell
 gemäß ADR 0005. Direkte LAN-Bindung ist im aktuellen Adapter nicht konfigurierbar;
-HOST_SETUP dokumentiert private Proxy-/HTTPS-Wege und die noch fehlende Android-LAN-Umsetzung.
+HOST_SETUP dokumentiert private Proxy-/HTTPS-Wege und die implementierte Android-LAN-Umsetzung.
+Pi 4/Ubuntu 26.04.1 LTS ARM64 wurde mit Android im privaten LAN
+[praktisch End-to-End abgenommen](../docs/verification-pi-host-2026-10-03.md).
 
 Die historische Dienstversion ist keine Sollversion für neue Hosts. Zum
 Installationszeitpunkt die bewusst ausgewählte aktuelle/unterstützte Codex-Version

@@ -31,7 +31,7 @@ class UserInputTestRunner : Instrumentation() {
             val token = config.getString("token")
             check(url == "http://127.0.0.1:18766") { "Test requires the isolated loopback server" }
             SettingsStore(targetContext).save(ConnectionSettings(url, token))
-            val api = CodexPadApi(url, token)
+            val api = CodexPadApi(url, token, allowLocalHttp = true)
             val evidence = StringBuilder()
             runBlocking {
                 val thread = api.createThread("input-test")

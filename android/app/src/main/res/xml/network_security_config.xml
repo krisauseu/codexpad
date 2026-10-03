@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- NSC cannot express CIDR or runtime consent. Every API base URL is checked
+         by the app policy; only an explicitly trusted RFC1918 literal uses HTTP.
+         TLS retains Android's default system trust and hostname verification. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

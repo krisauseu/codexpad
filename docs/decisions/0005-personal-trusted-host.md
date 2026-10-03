@@ -2,7 +2,7 @@
 
 Datum: 3. Oktober 2026. Status: **Accepted**, aufgrund der ausdrücklichen
 Produktvorgabe des Betreibers. Geltung: persönlicher Single-User-CodexPad-Host,
-einschließlich des zukünftigen Raspberry Pi; keine Mehrnutzer-Sicherheitsfreigabe.
+einschließlich des praktisch getesteten Raspberry Pi; keine Mehrnutzer-Sicherheitsfreigabe.
 
 ## Kontext und Evidenz
 
@@ -55,7 +55,9 @@ sind organisatorische Grenzen, keine Abschirmung vor einem Agenten mit sudo.
 Die früheren restriktiven Sicherheits-Spikes bleiben gültige historische Befunde
 für andere Trustmodelle. Sie werden nicht nachträglich als Full-Access-Abnahme
 gezählt. [HOST_SETUP](../../HOST_SETUP.md) beschreibt die bewusste Einrichtung
-und spätere Smoke-Tests; ARM64-End-to-End ist noch nicht abgenommen.
+und reproduzierbare Smoke-Tests; [Pi 4/Ubuntu 26.04.1 ARM64](../verification-pi-host-2026-10-03.md)
+ist mit echtem Android-Tablet End-to-End abgenommen, einschließlich Full Access
+und sudo UID 0. Codex 0.160.0 ist die datierte Prüfversion.
 Bei Mehrnutzerbetrieb, untrusted Hosts, öffentlicher Bereitstellung oder
 geändertem Betreibervertrauen eine neue Entscheidung mit geeigneter Isolation
 und Authentifizierung treffen; diese ADR nicht stillschweigend übertragen.

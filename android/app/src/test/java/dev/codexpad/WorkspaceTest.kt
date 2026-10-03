@@ -24,7 +24,7 @@ class WorkspaceTest {
 
     @Test fun workspaceMutationsUseExistingAuthenticatedTransportAndInspection() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), "private-token")
+            val api = CodexPadApi(server.url("/").toString(), "private-token", allowLocalHttp = true)
             server.enqueue(MockResponse().setResponseCode(201).setBody("{}"))
             api.createWorkspace("  Grüße 1  ")
             server.takeRequest().let {
@@ -53,7 +53,7 @@ class WorkspaceTest {
 
     @Test fun knownServerErrorsAreTranslatedWithoutEchoingArbitraryMessages() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), "private-token")
+            val api = CodexPadApi(server.url("/").toString(), "private-token", allowLocalHttp = true)
             for ((status, code, fragment) in listOf(
                 Triple(400, "invalid_workspace_name", "Ungültiger"),
                 Triple(409, "workspace_exists", "bereits vorhanden"),

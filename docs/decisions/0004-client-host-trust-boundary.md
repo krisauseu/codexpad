@@ -46,5 +46,9 @@ des Agenten durch Dienstkonto/systemd und Agent-Sandbox: Full Access, never und
 passwortloses sudo sind gewollt und am VPS beobachtet. Die zentrale Entscheidung
 dieses ADR zur Host-Trust-Boundary bleibt unverändert. Historischer Text und
 Isolations-Spikes werden nicht umgedeutet. Der Pi-Control-Eingang soll privat
-bleiben; [ADR 0006](0006-private-host-transport.md) schlägt dafür konfigurierbares
-LAN-HTTP bzw. privates HTTPS vor. LAN-Androidänderung/Abnahme stehen noch aus.
+bleiben; [ADR 0006](0006-private-host-transport.md) konkretisiert konfigurierbares
+LAN-HTTP beziehungsweise privates HTTPS. Trusted-LAN-HTTP ist implementiert und
+[am Pi mit echtem Tablet abgenommen](../../android/VERIFICATION-TRUSTED-LAN.md).
+Für diesen Modus ersetzt explizite, an die RFC1918-IPv4-URL gebundene Zustimmung
+die oben beschriebene ausschließliche Debug-HTTP-Regel. HTTPS bleibt Standard;
+Bearer-Token und Inhalte sind über LAN-HTTP unverschlüsselt.

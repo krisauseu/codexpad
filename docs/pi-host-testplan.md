@@ -1,5 +1,11 @@
 # Raspberry-Pi-Abnahme vom Mac
 
+> Fortschreibung nach der Abnahme am 3. Oktober 2026: Raspberry Pi 4,
+> Ubuntu 26.04.1 LTS ARM64 und echtes Android-Tablet sind über privates LAN
+> End-to-End bestätigt. [Host-/Mac-Status](verification-pi-host-2026-10-03.md),
+> [Android-/Trusted-LAN-Prüfbericht](../android/VERIFICATION-TRUSTED-LAN.md).
+> Der folgende Text beschreibt die Vorbereitung vor dieser Abnahme.
+
 Vorbereitet am 3. Oktober 2026 aus [HOST_SETUP](../HOST_SETUP.md),
 [VPS-Inventar](vps-inventory-2026-10-03.md) und dem tatsächlichen Projektcode.
 Noch nichts auf einem Remotehost ausgeführt. SSH-Alias: `pi-codexpad`,

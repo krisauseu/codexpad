@@ -10,17 +10,20 @@ laufenden persönlichen Modus; keine allgemeine v0.1-/Mehrnutzerfreigabe.
 | Frage | Persönlicher Betriebsstand / Rest |
 | --- | --- |
 | P3, S1 | Eigener Trusted Linux-Host, Single User; bevorzugt Pi 4 ARM64. Full Access/never/sudo sind ausdrückliche Betreiberentscheidung (Accepted ADR 0005). |
-| C1/C2 | Historische VPS-Inventur vom 3. Oktober 2026: damaliger Dienst 0.160.0, stdio, keine `experimentalApi`-Capability; UserInput-Feature aktiv. Neuer Pi: zum Installationszeitpunkt aktuelle/unterstützte ARM64-Version bewusst auswählen, vollständiges Release samt passenden Helpern installieren; tatsächlichen Dienstpfad/Version protokollieren. ARM64-/Schemaabnahme noch offen. |
-| C5/S4 | Host hält ChatGPT-Dateicredentials; Dienstkonto angemeldet. Frischer Pi-Device-Login noch praktisch zu testen; keine Accountcredentials in Android nötig. |
-| R1/S2 | VPS: HTTPS/Caddy → Token-Adapter Loopback → stdio. Clienttoken in Keystore; Pi-Eingang soll privat sein. LAN-HTTP-Implementierung/Abnahme Proposed ADR 0006. |
+| C1/C2 | Pi 4/Ubuntu 26.04.1 LTS ARM64 mit Codex 0.160.0 praktisch bestätigt: vollständiges Release, Helper/Ressourcen, Digest und Modellturn. Datierte Prüfversion, keine künftige Sollversion; neue Releases separat abnehmen. |
+| C5/S4 | ChatGPT-Login unter Pi-Dienstbenutzer `codexpad` bestanden; Accountcredentials bleiben auf dem Host, keine in Android nötig. |
+| R1/S2 | VPS: HTTPS/Caddy → Token-Adapter Loopback → stdio. Pi: privater LAN-Caddy → Loopback → stdio mit echtem Android bestätigt. Trusted-LAN-HTTP und URL-gebundene Zustimmung implementiert; ergänzende ADR-0006-Abnahme offen. |
 | S3/S8 | Für diesen persönlichen Modus keine Workspace-/Secretisolation vor dem Trusted Agent gewünscht. CWD/Routen sind keine OS-Grenze. Restriktive frühere Spikekriterien bleiben für andere Trustmodelle offen. |
-| A1/A3 | Kotlin/Compose, OkHttp JSON/Multipart/SSE, min 26/target 37 im Code. Kein SSH/WebSocket in der nativen API-Verbindung. LAN-NSC/URLpolicy und Android-17-Runtimeberechtigung fehlen. |
+| A1/A3 | Kotlin/Compose, OkHttp JSON/Multipart/SSE, min 26/target 37 im Code. Kein SSH/WebSocket in der nativen API-Verbindung. LAN-NSC/URLpolicy und Android-17-Runtimeberechtigung implementiert; API-36-Tablet bestätigt, echter API-37-Dialog offen. |
 | S6/U3 | Gewöhnliche Shell-/Datei-/Netzwerk-Approvals nicht ans Tablet; fachliche Rückfragen separat. Drittanbieter-Sicherheitsmechanismen bleiben wirksam. |
 
-Offen für Pi: reale ARM64-Tools/Helper, frischer Accountlogin, sudo/Netz-/Außenwrite,
-Autostart/Reboot, Tablet-LAN-HTTP/HTTPS, Android-17-Permission, negative externe
-Erreichbarkeit, SSE/History/Artefakte und repräsentative Dauerlast. Der folgende
-historische Support-/Isolationskatalog wird dadurch nicht pauschal geschlossen.
+[Abgeschlossen](../verification-pi-host-2026-10-03.md): ARM64-Release/Helper,
+Accountlogin, Full Access, sudo, Netz-/Root-Schreibtest, systemd, Tablet-LAN-HTTP,
+SSE/History/Reconnect, Rückfragen und Artefakte.
+Offen ohne Blocker für den aktuellen Betrieb: echter API-37-Permissiondialog,
+DHCP-Reservierung, externe Router-/IPv6-Erreichbarkeit, Reboot, Last-/Dauerlast,
+Backup/Restore und VPS-Migration. IPv6-HTTP bleibt gesperrt; LAN-HTTP unverschlüsselt.
+Der folgende historische Support-/Isolationskatalog wird dadurch nicht pauschal geschlossen.
 
 Stand: 18. September 2026, nach Konsolidierung beider Linux-Spikes und Remote-Trust-Research. Laufzeitantworten gelten für den geprüften Umfang mit Codex 0.154.0; lokale Schema-/Hilfebefunde zu 0.155.0 sind getrennt dokumentiert. Der Produkt-Supportvertrag ist noch offen.
 

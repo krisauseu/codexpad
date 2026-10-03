@@ -1,4 +1,1 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-    <!-- Local development through adb reverse / a loopback SSH tunnel. -->
-    <application android:usesCleartextTraffic="true" tools:replace="android:usesCleartextTraffic" />
-</manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

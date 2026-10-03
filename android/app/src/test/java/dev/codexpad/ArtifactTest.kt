@@ -20,7 +20,7 @@ class ArtifactTest {
     }
     @Test fun downloadUsesAuthAndRejectsRedirectsAndOversize() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), "test-token")
+            val api = CodexPadApi(server.url("/").toString(), "test-token", allowLocalHttp = true)
             val artifact = Artifact("a", "notes.md", "text/markdown", 7)
             val file = File.createTempFile("artifact", ".md")
             try {

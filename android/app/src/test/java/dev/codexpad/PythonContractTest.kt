@@ -16,7 +16,7 @@ class PythonContractTest {
     @Test fun longPromptsAndHtmlUseProductionPythonHandler() = runBlocking {
         val base = System.getenv("CODEXPAD_CONTRACT_URL")
         assumeTrue("Start tools/contract_server.py and set CODEXPAD_CONTRACT_URL", base != null)
-        val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"))
+        val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"), allowLocalHttp = true)
         val workspace = api.workspaces().single()
         val prefix = " \nGrüße 👋\n# Markdown\n```text\nCode\n```\n"
         val message = prefix + "😀".repeat(12000 - TransferPolicy.messageLength(prefix) - 2) + "\n "
@@ -42,7 +42,7 @@ class PythonContractTest {
     @Test fun realPythonRoutesStreamDisconnectReconnectAndContinue() = runBlocking {
         val base = System.getenv("CODEXPAD_CONTRACT_URL")
         assumeTrue("Start tools/contract_server.py and set CODEXPAD_CONTRACT_URL", base != null)
-        val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"))
+        val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"), allowLocalHttp = true)
         assertEquals("ok", api.health())
         assertEquals("fixture-model", api.models().single().model)
         assertEquals(94, api.rateLimits().remainingPercent)

@@ -68,7 +68,7 @@ fun ArtifactCard(artifact: Artifact, threadId: String, vm: PadViewModel) {
                     save.launch(artifact.name)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) { error = "Download fehlgeschlagen. Verbindung prüfen und Verlauf neu laden." }
+            catch (failure: Exception) { error = dev.codexpad.network.connectionError(failure) }
             finally { busy = false }
         }
     }

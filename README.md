@@ -1,32 +1,85 @@
 # CodexPad
 
-**CodexPad** ist ein experimenteller nativer Android-Client für agentisches Softwareentwickeln auf einem entfernten Linux-System.
+**CodexPad** ist ein nativer Android-Client für einen eigenen Codex-Host.
+Codex läuft auf einem Linux-Rechner im eigenen Netzwerk oder auf einem VPS.
+Android steuert Threads, Turns, Modelle, Dateien, Rückfragen und Artefakte;
+der eigentliche Codex-Prozess, die Tools und Workspaces laufen auf dem Host.
+Der CodexPad Python-Adapter steuert dafür einen unveränderten **Codex App Server**.
 
-Die App verbindet sich mit einem persönlichen CodexPad-Server, der einen unveränderten **Codex App Server** steuert. Projekte, Toolchain und Agent laufen auf dem Remote-Host; das Android-Tablet dient als native Arbeitsoberfläche für Unterhaltungen, laufende Agent-Aufgaben, Modellsteuerung und Ergebnisse.
+> Das Projekt befindet sich in aktiver Entwicklung und ist auf persönlichen Single-User-Betrieb ausgelegt.
 
-> Das Projekt befindet sich in aktiver Entwicklung und ist derzeit auf einen persönlichen Single-User-Betrieb ausgelegt.
+## Praktisch getestete Umgebungen
 
-Ein **CodexPad Host** betreibt Python-Adapter, privaten Codex App Server und lokale
-Tools/Workspaces. Die kanonische [Host-Installation](HOST_SETUP.md) bereitet einen
-frischen Linux-Host vor; bevorzugtes zukünftiges Ziel ist ein **Raspberry Pi 4
-ARM64 mit einem 64-bit-Lite-OS im LAN**. Der funktionierende VPS wurde
-[lesend inventarisiert](docs/vps-inventory-2026-10-03.md), ohne Migration.
-Pi-End-to-End und direktes Android-LAN-HTTP sind noch praktisch abzunehmen.
-[Vorbereiteter Clientabgleich](docs/pi-host-client-abgleich-2026-10-03.md) und
-[Pi-Abnahmeplan vom Mac](docs/pi-host-testplan.md) ergänzen die Aufbauanleitung.
+- **Linux-VPS:** ursprüngliche Referenzinstallation mit Android, HTTPS, Caddy
+  und Codex App Server. [Deployment](docs/deployment.md).
+- **Raspberry Pi 4 mit Ubuntu 26.04.1 LTS, ARM64/AArch64:** vollständige
+  End-to-End-Abnahme am 3. Oktober 2026 mit einem **HONOR YLE-W09**, Android 16,
+  API 36. **Android → privates LAN → Pi → CodexPad → Codex funktioniert praktisch.**
 
-Persönlicher Trusted Host: Codex läuft bewusst mit
-`sandbox_mode="danger-full-access"`, `approval_policy="never"` und passwortlosem
-sudo für Hostadministration. Gewöhnliche Codex-Approvals gehen nicht ans Tablet.
-Netzwerkgrenze und Token bleiben separat geschützt; der zukünftige Pi-Control-
-Eingang darf nicht versehentlich öffentlich erreichbar werden.
-[Trustentscheidung ADR 0005](docs/decisions/0005-personal-trusted-host.md),
-[Transportvorschlag ADR 0006](docs/decisions/0006-private-host-transport.md) und
-[HOST_SETUP](HOST_SETUP.md#10-netzwerk-und-android-verbindung) enthalten die Details.
+Auf dem Pi bestätigt: vollständiges ARM64-Release samt Helpern und Ressourcen,
+SHA-256-Abgleich, ChatGPT-Login als Dienstbenutzer `codexpad`, Modellturn,
+Full Access, passwortloses sudo bis UID 0, systemd, lokaler Caddy,
+Authentifizierung, SSE, Reconnect, vollständige History, `requestUserInput`
+mit Auswahl/Freitext und Datei-/Upload-/Download-/Artefaktworkflow.
+Der Backendlistener bleibt auf `127.0.0.1:8765`; der getestete private
+LAN-Eingang war `http://172.16.16.39:8876`.
+
+**Codex 0.160.0** gehört zu dieser datierten Pi-Abnahme und ist keine feste
+Sollversion für spätere Installationen.
+[Host- und Mac-Abnahme](docs/verification-pi-host-2026-10-03.md),
+[Android-/Trusted-LAN-Prüfbericht](android/VERIFICATION-TRUSTED-LAN.md).
+
+## Schnellstart auf einem eigenen Linux-Host
+
+1. Frisches 64-Bit-Linux bereitstellen (Python mindestens 3.12).
+2. SSH-Zugang und passwortloses sudo für den administrierenden Benutzer einrichten.
+3. Codex installieren und mit ChatGPT/Codex anmelden; Netzwerkzugang sicherstellen.
+4. Dieses Repository klonen.
+5. Codex [HOST_SETUP.md](HOST_SETUP.md) lesen und auf dem frischen Host ausführen lassen;
+   den [Pi-Abnahmeplan](docs/pi-host-testplan.md) zur Prüfung verwenden.
+6. Die Android-App mit dem Host verbinden, Token eingeben, Verbindung testen und speichern.
+
+Die ausführliche Host-Anleitung macht die Einrichtung reproduzierbar und prüfbar.
+Ein Agent wie Codex kann sie weitgehend automatisch umsetzen. In der praktischen
+Abnahme konnte Codex auf einem vorbereiteten, weitgehend frischen Raspberry Pi
+die dokumentierte Einrichtung innerhalb von **rund fünf Minuten** durchführen.
+Das ist eine beobachtete Dauer unter diesen Voraussetzungen, keine garantierte
+Installationszeit. Ein Nutzer muss die ausführliche Anleitung nicht Schritt für
+Schritt manuell abarbeiten.
+
+Mit 64-Bit-Linux, SSH, sudo, installiertem Codex beziehungsweise einer
+Installationsmöglichkeit, Anmeldung und Netzwerkzugang konnte Codex selbstständig
+Pakete installieren, das Repository klonen, den Dienstbenutzer anlegen, Codex
+für den Dienst vorbereiten, systemd und Caddy konfigurieren, das Token erzeugen,
+Dienste starten und Tests ausführen. [HOST_SETUP.md](HOST_SETUP.md) bleibt die
+kanonische technische Anleitung.
+
+## Verbindung und Trusted LAN HTTP
+
+**HTTPS bleibt Standard.** Die Option **Privates LAN über HTTP erlauben** ist
+standardmäßig aus. Sie verlangt ausdrückliche Zustimmung und akzeptiert nur
+RFC1918-IPv4-Adressen (`10/8`, `172.16/12`, `192.168/16`). Vertrauen gilt für
+Schema, Host und Port; ein URL-Wechsel setzt es zurück. Öffentliches HTTP,
+HTTP über DNS-Namen und IPv6-HTTP bleiben für den regulären LAN-Zugang gesperrt.
+Die lokalen Debug-Ausnahmen sind in der [Android-Anleitung](android/README.md#verbindungseinstellungen) beschrieben.
+
+**Über LAN-HTTP werden Bearer-Token und Inhalte unverschlüsselt übertragen.**
+Diese Option ist für das ausdrücklich vertraute private Netzwerk gedacht.
+Android-17-/API-37-LAN-Permission samt Runtimeprüfung ist implementiert;
+der echte Systemdialog wurde mangels API-37-Gerät noch nicht praktisch getestet.
+[Verhalten, Tests und Tablet-Abnahme](android/VERIFICATION-TRUSTED-LAN.md).
+
+Der persönliche Trusted Host verwendet `sandbox_mode="danger-full-access"`,
+`approval_policy="never"` und passwortloses sudo. Gewöhnliche Codex-Approvals
+gehen nicht ans Tablet; fachliche Rückfragen bleiben bedienbar. Netzwerkgrenze
+und Token schützen den Steuerungszugang separat.
+[ADR 0005](docs/decisions/0005-personal-trusted-host.md),
+[ADR 0006](docs/decisions/0006-private-host-transport.md).
 
 ## Aktueller Stand
 
-CodexPad läuft inzwischen als durchgängiger Android → HTTPS → Linux → Codex-Workflow auf einem persönlichen VPS.
+Der Kernworkflow ist auf dem Linux-VPS über HTTPS und auf dem Raspberry Pi
+über direktes privates LAN mit echtem Android-Tablet bestätigt.
 
 Der native Kotlin-/Jetpack-Compose-Client unterstützt unter anderem:
 
@@ -38,16 +91,16 @@ Der native Kotlin-/Jetpack-Compose-Client unterstützt unter anderem:
 - Starten und gezieltes Stoppen laufender Turns
 - Modellwahl und modellabhängige Reasoning-Efforts
 - Anzeige der Kontextnutzung
-- manuelle Kontextkompaktierung
 - Darstellung von Agent- und Tool-Aktivitäten
 - Command-, MCP-, Dynamic-Tool- und File-Change-Karten
 - Bild- und Dateianhänge an neue Nachrichten
 - Ergebnisdateien wie PDF, Bilder, Text und Markdown
 - authentifiziertes Öffnen und Herunterladen erzeugter Artefakte
 - sichere Speicherung der Server-Zugangsdaten über Android Keystore
-- direkten HTTPS-Zugriff auf einen persönlichen Remote-Server
+- direkten HTTPS-Zugriff und ausdrücklich freigegebenes privates LAN-HTTP
+- fachliche Rückfragen mit Auswahl und Freitext (`requestUserInput`)
 
-Der aktuelle Prototyp wurde auf einem echten Android-Tablet sowie gegen einen persönlichen VPS mit Codex App Server getestet.
+Die datierten Prüfberichte dokumentieren den getesteten Umfang auf VPS und Raspberry Pi; historische Spikes behalten ihre damaligen Versionsgrenzen.
 
 ## Architektur
 
@@ -59,7 +112,7 @@ Der aktuelle Prototyp wurde auf einem echten Android-Tablet sowie gegen einen pe
 │  Kotlin + Jetpack Compose │
 └─────────────┬─────────────┘
               │
-              │ HTTPS + Bearer Token
+              │ HTTPS / Trusted LAN HTTP + Bearer Token
               │ REST + SSE
               ▼
 ┌───────────────────────────┐
@@ -95,7 +148,7 @@ Live-Events werden für die unmittelbare Darstellung verwendet. Nach Verbindungs
 
 ## Remote-Betrieb
 
-Der derzeit getestete persönliche Aufbau verwendet:
+Die ursprüngliche VPS-Referenzinstallation verwendet:
 
 ```text
 Android
@@ -257,17 +310,16 @@ VISION.md       langfristiges Zielbild
 
 **Stand: 3. Oktober 2026**
 
-Die datierte VPS-Inventur vom 3. Oktober 2026 belegt für den damaligen Dienst
-**Codex 0.160.0**; sie ist keine Versionsvorgabe für neue Hosts. Release-Marker
-und deployed Adapter wichen dokumentiert voneinander ab. Historische
-Build-/Tablet-/Spike-Nachweise behalten ihre jeweilige Versionsgrenze.
-Für den Pi zum Installationszeitpunkt eine aktuelle/unterstützte ARM64-Version
-bewusst wählen und als vollständiges Release samt benötigten Helpern installieren.
-Maßgeblich sind der tatsächliche systemd-Dienstbinary-Pfad und die protokollierte
-Abnahme dieser Version, kein zusätzlich global installiertes CLI-Binary.
+VPS- und Pi-End-to-End-Betrieb sind praktisch bestätigt. Der Pi wurde mit
+Ubuntu 26.04.1 LTS ARM64 und Codex 0.160.0 abgenommen; diese Version ist ein
+datierter Nachweis. Bei neuen Hosts die gewählte Version samt vollständigem
+Release und Helpern prüfen und den tatsächlichen Dienstbinary-Pfad protokollieren.
+Historische Build-/Tablet-/Spike-Nachweise behalten ihre jeweilige Versionsgrenze.
 
-Der Kernworkflow läuft auf einem persönlichen Android-Tablet gegen einen echten Remote-Linux-Host.
+Offen, ohne den aktuellen Betrieb zu blockieren: echter Android-17-/API-37-
+Permissiondialog, DHCP-Reservierung, externe Router-/IPv6-Erreichbarkeitsprüfung,
+Reboot, Last-/Dauerlast sowie Backup/Restore/VPS-Migration. IPv6-HTTP bleibt
+bewusst gesperrt; LAN-HTTP bleibt unverschlüsselt.
 
-Der Schwerpunkt der nächsten Entwicklungsschritte liegt nicht mehr auf dem grundsätzlichen Nachweis der Android-/Codex-Verbindung, sondern auf dem Ausbau des eigentlichen Entwicklungsworkflows und der Tablet-UX.
-
-CodexPad ist weiterhin ein experimentelles Projekt und noch keine fertige allgemeine Entwicklungsumgebung.
+Die nächsten Entwicklungsschritte betreffen den Entwicklungsworkflow und die
+Tablet-UX. CodexPad bleibt ein experimentelles Projekt.

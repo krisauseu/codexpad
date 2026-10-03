@@ -15,7 +15,7 @@ class ApiTest {
     private val token = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
     @Test fun userInputAnswersAreAuthenticatedTypedAndNeverRetried() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
             api.answerRequest("thread", "request", mapOf("name" to dev.codexpad.model.InputAnswer("mine.txt"),
                 "choice" to dev.codexpad.model.InputAnswer("B", true)))
@@ -35,7 +35,7 @@ class ApiTest {
 
     @Test fun multipartTurnCarriesRealBytesAndAuth() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             server.enqueue(MockResponse().setResponseCode(202)
                 .setBody("""{"turn":{"id":"u","status":"inProgress","items":[]}}"""))
             api.startTurn("t", "Frage", null, null,
@@ -54,7 +54,7 @@ class ApiTest {
     }
     @Test fun endpointsAndBodiesMatchServerContract() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             val t = """{"thread":{"id":"t","status":{"type":"idle"},"turns":[]}}"""
             server.enqueue(MockResponse().setBody("""{"status":"ok","appServer":{}}"""))
             assertEquals("ok", api.health())
@@ -82,7 +82,7 @@ class ApiTest {
 
     @Test fun catalogAndOptionalOverridesUseNarrowContract() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             server.enqueue(MockResponse().setBody("""{"models":[{"id":"catalog","model":"selector","displayName":"Test","description":"Test model","isDefault":true,"supportedReasoningEfforts":[{"reasoningEffort":"custom","description":"Custom"}],"defaultReasoningEffort":"custom"}]}"""))
             assertEquals("custom", api.models().single().efforts.single().effort)
             assertEquals("/models", server.takeRequest().path)
@@ -105,7 +105,7 @@ class ApiTest {
     @Test fun lostPostResponseNeverRetries() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            val result = runCatching { CodexPadApi(server.url("/").toString(), token).startTurn("t", "Once only", "selector", "custom") }
+            val result = runCatching { CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true).startTurn("t", "Once only", "selector", "custom") }
             assertTrue(result.isFailure)
             assertEquals("POST", server.takeRequest(2, TimeUnit.SECONDS)!!.method)
             assertNull(server.takeRequest(250, TimeUnit.MILLISECONDS))
@@ -115,7 +115,7 @@ class ApiTest {
 
     @Test fun interruptUsesExactEncodedIdsAndNeverRetriesLostResponse() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
             api.interruptTurn("thread /1", "turn #2")
             val request = server.takeRequest()
@@ -133,7 +133,7 @@ class ApiTest {
 
     @Test fun compactUsesEmptyAuthenticatedPostAndNeverRetries() = runBlocking {
         MockWebServer().use { server ->
-            val api = CodexPadApi(server.url("/").toString(), token)
+            val api = CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true)
             server.enqueue(MockResponse().setResponseCode(202).setBody("{}"))
             api.compactThread("thread /1")
             val request = server.takeRequest()
@@ -152,7 +152,7 @@ class ApiTest {
     @Test fun errorBodyIsReadableAndWorkspaceIdIsEncoded() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setResponseCode(404).setBody("""{"error":"Unknown workspace"}"""))
-            val error = runCatching { CodexPadApi(server.url("/").toString(), token).threads("Grüße #1") }.exceptionOrNull()
+            val error = runCatching { CodexPadApi(server.url("/").toString(), token, allowLocalHttp = true).threads("Grüße #1") }.exceptionOrNull()
             assertEquals(httpErrorMessage(404), error?.message)
             assertEquals(404, (error as ApiException).status)
             assertEquals("/workspaces/Gr%C3%BC%C3%9Fe%20%231/threads", server.takeRequest().path)
@@ -162,7 +162,7 @@ class ApiTest {
     @Test fun redirectsNeverForwardTokenAndErrorsNeverEchoIt() = runBlocking {
         MockWebServer().use { origin ->
             MockWebServer().use { other ->
-                val api = CodexPadApi(origin.url("/").toString(), token)
+                val api = CodexPadApi(origin.url("/").toString(), token, allowLocalHttp = true)
                 origin.enqueue(MockResponse().setResponseCode(302).setHeader("Location", other.url("/workspaces")))
                 assertEquals(302, (runCatching { api.workspaces() }.exceptionOrNull() as ApiException).status)
                 assertNull(other.takeRequest(250, TimeUnit.MILLISECONDS))

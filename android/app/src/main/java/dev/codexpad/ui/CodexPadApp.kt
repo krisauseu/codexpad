@@ -34,6 +34,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.codexpad.network.LOCAL_NETWORK_PERMISSION
+import dev.codexpad.network.LOCAL_NETWORK_PERMISSION_MESSAGE
+import dev.codexpad.settings.retainedLanHttpTrust
+import dev.codexpad.settings.isPrivateLanIpv4
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import dev.codexpad.data.ThreadSession
 import dev.codexpad.data.ThreadState
 import dev.codexpad.model.Message
@@ -72,9 +77,17 @@ private fun SessionStatusLine(state: ThreadState) {
 fun CodexPadApp(vm: PadViewModel = viewModel()) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val session = vm.session
-    LaunchedEffect(session, vm.workspace, vm.ready, vm.showSettings) {
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        vm.refreshLocalNetworkPermission()
+    }
+    LaunchedEffect(lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            if (vm.ready && !vm.showSettings) {
+            while (true) { vm.refreshLocalNetworkPermission(); delay(1000) }
+        }
+    }
+    LaunchedEffect(session, vm.workspace, vm.ready, vm.showSettings, vm.localNetworkBlocked) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            if (vm.ready && !vm.showSettings && !vm.localNetworkBlocked) {
                 if (session != null) session.run() else vm.reload()
             }
         }
@@ -101,6 +114,12 @@ fun CodexPadApp(vm: PadViewModel = viewModel()) {
             Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = 960.dp).fillMaxSize().padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (vm.localNetworkBlocked) {
+                        ErrorText(LOCAL_NETWORK_PERMISSION_MESSAGE)
+                        OutlinedButton(onClick = { permission.launch(LOCAL_NETWORK_PERMISSION) }) {
+                            Text("Lokalen Netzwerkzugriff erlauben")
+                        }
+                    }
                     if (!vm.ready) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                     } else if (vm.showSettings) {
@@ -402,14 +421,26 @@ private fun ErrorText(text: String) {
 @Composable
 private fun ConnectionSettingsScreen(vm: PadViewModel) {
     var url by remember(vm.serverUrl) { mutableStateOf(vm.serverUrl) }
+    var trusted by remember(vm.serverUrl, vm.trustedLanHttp) { mutableStateOf(vm.trustedLanHttp) }
+    val privateHttp = url.trim().toHttpUrlOrNull()?.let { !it.isHttps && isPrivateLanIpv4(it.host) } == true
     // Intentionally never saveable: no token in Bundle, SavedStateHandle or restored UI text.
     var enteredToken by remember { mutableStateOf("") }
     Column(Modifier.widthIn(max = 680.dp).fillMaxWidth().padding(top = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Serververbindung", style = MaterialTheme.typography.titleLarge)
-        OutlinedTextField(value = url, onValueChange = { url = it; vm.settingsEdited() }, modifier = Modifier.fillMaxWidth(),
+        OutlinedTextField(value = url, onValueChange = {
+            trusted = retainedLanHttpTrust(url.trim().toHttpUrlOrNull()?.toString()?.removeSuffix("/").orEmpty(), it, trusted)
+            url = it; vm.settingsEdited()
+        }, modifier = Modifier.fillMaxWidth(),
             enabled = !vm.settingsBusy, singleLine = true, label = { Text("Server-URL") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = trusted, onCheckedChange = { trusted = it; vm.settingsEdited() },
+                enabled = privateHttp && !vm.settingsBusy)
+            Text("Privates LAN über HTTP erlauben", Modifier.padding(start = 12.dp))
+        }
+        Text("Nur für diese private IPv4-Serveradresse. HTTP überträgt das Zugriffstoken und Inhalte unverschlüsselt. Nur im vertrauenswürdigen LAN aktivieren.",
+            style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(value = enteredToken, onValueChange = { enteredToken = it; vm.settingsEdited() },
             modifier = Modifier.fillMaxWidth(), enabled = !vm.settingsBusy, singleLine = true,
             label = { Text(if (vm.hasToken) "Neues Zugriffstoken (optional)" else "Zugriffstoken") },
@@ -421,10 +452,10 @@ private fun ConnectionSettingsScreen(vm: PadViewModel) {
         Text(vm.connectionStatus, style = MaterialTheme.typography.labelLarge)
         vm.settingsError?.let { ErrorText(it) }
         if (vm.settingsBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        OutlinedButton(onClick = { vm.testConnection(url, enteredToken) }, enabled = !vm.settingsBusy) {
+        OutlinedButton(onClick = { vm.testConnection(url, enteredToken, trusted) }, enabled = !vm.settingsBusy) {
             Text("Verbindung testen")
         }
-        Button(onClick = { vm.saveConnection(url, enteredToken) { enteredToken = "" } }, enabled = !vm.settingsBusy) {
+        Button(onClick = { vm.saveConnection(url, enteredToken, trusted) { enteredToken = "" } }, enabled = !vm.settingsBusy) {
             Text("Speichern")
         }
     }

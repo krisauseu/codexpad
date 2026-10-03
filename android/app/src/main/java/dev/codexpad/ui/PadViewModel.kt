@@ -10,9 +10,13 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.codexpad.BuildConfig
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import dev.codexpad.data.ThreadSession
 import dev.codexpad.data.Compaction
 import dev.codexpad.model.*
+import dev.codexpad.network.LocalNetworkPermissionException
+import dev.codexpad.network.LocalNetworkPolicy
+import dev.codexpad.network.LOCAL_NETWORK_PERMISSION
 import dev.codexpad.network.CodexPadApi
 import dev.codexpad.network.UploadImage
 import dev.codexpad.network.UploadText
@@ -39,7 +43,27 @@ data class PendingText(val uri: Uri, val name: String, val mimeType: String)
 class PadViewModel(application: Application, private val saved: SavedStateHandle) : AndroidViewModel(application) {
     private val store = SettingsStore(application)
     private var config = ConnectionSettings(BuildConfig.SERVER_URL, "")
-    private var api = CodexPadApi(config.serverUrl, config.token)
+    private val localNetwork = LocalNetworkPolicy(
+        apiLevel = { android.os.Build.VERSION.SDK_INT },
+        granted = { androidx.core.content.ContextCompat.checkSelfPermission(application, LOCAL_NETWORK_PERMISSION) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED },
+        onBlocked = { viewModelScope.launch { localNetworkBlocked = true } },
+    )
+    private var api = apiFor(config)
+    var localNetworkBlocked by mutableStateOf(false)
+        private set
+    var trustedLanHttp by mutableStateOf(false)
+        private set
+
+    private fun apiFor(target: ConnectionSettings) = CodexPadApi(target.serverUrl, target.token,
+        allowLocalHttp = BuildConfig.DEBUG, trustedLanHttp = target.trustedLanHttp, localNetwork = localNetwork)
+
+    fun refreshLocalNetworkPermission() {
+        if (!localNetwork.missingPermission()) localNetworkBlocked = false
+        else try { localNetwork.checkHost(config.serverUrl.toHttpUrl().host) }
+        catch (_: LocalNetworkPermissionException) { localNetworkBlocked = true }
+    }
+
     var ready by mutableStateOf(false)
         private set
     var showSettings by mutableStateOf(false)
@@ -84,20 +108,20 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         connectionStatus = "Eingaben geändert · noch nicht getestet"
     }
 
-    private fun candidate(url: String, enteredToken: String): ConnectionSettings {
-        val normalized = normalizeServerUrl(url, BuildConfig.DEBUG)
+    private fun candidate(url: String, enteredToken: String, trusted: Boolean): ConnectionSettings {
+        val normalized = normalizeServerUrl(url, BuildConfig.DEBUG, trusted)
         require(normalized == config.serverUrl || enteredToken.isNotEmpty()) {
             "Bei einer neuen Serveradresse das zugehörige Token erneut eingeben."
         }
         val token = enteredToken.ifEmpty { config.token }
         validateToken(token)
-        return ConnectionSettings(normalized, token)
+        return ConnectionSettings(normalized, token, trusted && !normalized.startsWith("https:"))
     }
 
     // Test unsaved inputs without changing the active session or persisting the secret.
-    fun testConnection(url: String, enteredToken: String) {
+    fun testConnection(url: String, enteredToken: String, trusted: Boolean) {
         if (settingsBusy) return
-        val target = try { candidate(url, enteredToken) } catch (error: IllegalArgumentException) {
+        val target = try { candidate(url, enteredToken, trusted) } catch (error: IllegalArgumentException) {
             settingsError = error.message; return
         }
         settingsBusy = true
@@ -106,7 +130,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         viewModelScope.launch {
             try {
                 withTimeout(20_000) {
-                    val probe = CodexPadApi(target.serverUrl, target.token)
+                    val probe = apiFor(target)
                     probe.workspaces() // Proves authentication; public /health alone is insufficient.
                     check(probe.health() == "ok")
                 }
@@ -119,9 +143,9 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         }
     }
 
-    fun saveConnection(url: String, enteredToken: String, onSaved: () -> Unit) {
+    fun saveConnection(url: String, enteredToken: String, trusted: Boolean, onSaved: () -> Unit) {
         if (settingsBusy || creating || sending) return
-        val target = try { candidate(url, enteredToken) } catch (error: IllegalArgumentException) {
+        val target = try { candidate(url, enteredToken, trusted) } catch (error: IllegalArgumentException) {
             settingsError = error.message; return
         }
         settingsBusy = true
@@ -133,9 +157,12 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
                 if (target.serverUrl != config.serverUrl) saved.keys().toList().forEach { saved.remove<Any>(it) }
                 saved["serverUrl"] = target.serverUrl
                 config = target
-                api = CodexPadApi(target.serverUrl, target.token)
+                api = apiFor(target)
                 models = emptyList(); nextModel = null; nextEffort = null
                 serverUrl = target.serverUrl
+                trustedLanHttp = target.trustedLanHttp
+                localNetworkBlocked = false
+                refreshLocalNetworkPermission()
                 hasToken = true
                 session = null
                 threadId = null
@@ -200,8 +227,10 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         viewModelScope.launch {
             try {
                 config = withContext(Dispatchers.IO) { store.load() }
-                api = CodexPadApi(config.serverUrl, config.token)
+                api = apiFor(config)
                 serverUrl = config.serverUrl
+                trustedLanHttp = config.trustedLanHttp
+                refreshLocalNetworkPermission()
                 hasToken = config.token.isNotEmpty()
                 if (saved.get<String>("serverUrl") != config.serverUrl) {
                     saved.keys().toList().forEach { saved.remove<Any>(it) }
@@ -353,7 +382,7 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 workspaceActionError = workspaceError(failure) +
-                    if (failure !is ApiException) " Ergebnis unbestätigt. Liste prüfen; keine automatische Wiederholung." else ""
+                    if (failure !is ApiException && failure !is LocalNetworkPermissionException) " Ergebnis unbestätigt. Liste prüfen; keine automatische Wiederholung." else ""
             } finally {
                 // Also reconcile lost responses; never retry a filesystem mutation.
                 workspaces = emptyList()
@@ -382,9 +411,11 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 if (workspace == selected) {
-                    createUncertain = true
+                    createUncertain = failure !is LocalNetworkPermissionException
+                    saved["create:${selected.id}"] = createUncertain
                     reload()
-                    error = "Thread-Anlage nicht bestätigt: ${connectionError(failure)}. Liste prüfen; keine automatische Wiederholung."
+                    error = if (createUncertain) "Thread-Anlage nicht bestätigt: ${connectionError(failure)}. Liste prüfen; keine automatische Wiederholung."
+                        else connectionError(failure)
                 }
             } finally { creating = false }
         }
@@ -536,7 +567,11 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 if (threadId == id) {
-                    if (posting && failure is ApiException && failure.status in setOf(400, 413, 415)) {
+                    if (failure is LocalNetworkPermissionException) {
+                        saved["uncertain:$id"] = false
+                        uncertain = false
+                        sendError = connectionError(failure)
+                    } else if (posting && failure is ApiException && failure.status in setOf(400, 413, 415)) {
                         saved["uncertain:$id"] = false
                         if (failure.code == "message_too_long") sendError = TransferPolicy.MESSAGE_LIMIT_ERROR
                         else attachmentError = "Datei abgelehnt (HTTP ${failure.status}). Erlaubt: PNG/JPEG/WebP und UTF-8 .txt/.md/.html/.htm; Größe prüfen."

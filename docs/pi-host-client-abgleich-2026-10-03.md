@@ -1,5 +1,11 @@
 # Pi-Host: Synchronisierung mit dem lokalen Client
 
+> Fortschreibung nach der Abnahme am 3. Oktober 2026: Raspberry Pi 4,
+> Ubuntu 26.04.1 LTS ARM64 und echtes Android-Tablet sind über privates LAN
+> End-to-End bestätigt. [Host-/Mac-Status](verification-pi-host-2026-10-03.md),
+> [Android-/Trusted-LAN-Prüfbericht](../android/VERIFICATION-TRUSTED-LAN.md).
+> Der folgende Text beschreibt die Vorbereitung vor dieser Abnahme.
+
 Stand: 3. Oktober 2026. Analyse und Vorbereitung; keine Client-/Serveränderung,
 kein Release, Commit oder Push, keine Verbindung zum Pi oder VPS ausgeführt.
 Der [Mac-Testplan](pi-host-testplan.md) enthält die spätere Abnahme.

@@ -1,6 +1,7 @@
 package dev.codexpad.network
 
 import dev.codexpad.model.*
+import dev.codexpad.settings.normalizeServerUrl
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -38,11 +39,30 @@ interface CodexPadService {
     fun events(threadId: String): Flow<SseFrame>
 }
 
-class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService {
-    private val base = baseUrl.toHttpUrl()
+class CodexPadApi(
+    baseUrl: String, private val token: String,
+    allowLocalHttp: Boolean = false,
+    trustedLanHttp: Boolean = false,
+    private val localNetwork: LocalNetworkPolicy? = null,
+) : CodexPadService {
+    private val base = normalizeServerUrl(baseUrl, allowLocalHttp, trustedLanHttp).toHttpUrl()
     // Also disable transport retries and redirects: a POST may already have taken effect.
     private val client = OkHttpClient.Builder()
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false)
+        .addInterceptor { chain ->
+            localNetwork?.checkHost(chain.request().url.host)
+            chain.proceed(chain.request())
+        }
+        .dns(object : Dns {
+            override fun lookup(hostname: String): List<java.net.InetAddress> {
+                localNetwork?.checkHost(hostname)
+                return Dns.SYSTEM.lookup(hostname).also { addresses -> localNetwork?.checkResolvedHost(hostname, addresses) }
+            }
+        })
+        .addNetworkInterceptor { chain ->
+            chain.connection()?.route()?.socketAddress?.address?.let { localNetwork?.checkAddress(it) }
+            chain.proceed(chain.request())
+        }
         .connectTimeout(10, TimeUnit.SECONDS).readTimeout(150, TimeUnit.SECONDS)
         .callTimeout(150, TimeUnit.SECONDS).build()
     private val streaming = client.newBuilder().callTimeout(0, TimeUnit.SECONDS).build()
@@ -129,6 +149,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
                     val buffer = ByteArray(64 * 1024)
                     var total = 0L
                     while (true) {
+                        localNetwork?.checkHost(base.host)
                         val count = input.read(buffer)
                         if (count < 0) break
                         total += count
@@ -163,6 +184,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
                     source.timeout().timeout(45, TimeUnit.SECONDS)
                     val parser = SseParser()
                     while (true) {
+                        localNetwork?.checkHost(base.host)
                         val line = source.readUtf8Line() ?: throw IOException("SSE-Verbindung geschlossen")
                         parser.line(line)?.let { send(it) }
                     }
@@ -194,6 +216,7 @@ fun httpErrorMessage(status: Int): String = when (status) {
 }
 
 fun connectionError(error: Exception): String = when (error) {
+    is LocalNetworkPermissionException -> LOCAL_NETWORK_PERMISSION_MESSAGE
     is ApiException -> httpErrorMessage(error.status)
     is javax.net.ssl.SSLException -> "TLS-Verbindung fehlgeschlagen. Zertifikat und Server-URL prüfen."
     is java.net.UnknownHostException -> "Servername nicht gefunden. URL, DNS und Internetverbindung prüfen."

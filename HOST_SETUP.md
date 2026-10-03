@@ -8,15 +8,18 @@ soll funktional die Rolle des abschaltenden VPS übernehmen.
 Die Befehle dieses Dokuments sind **nicht auf dem laufenden Referenz-VPS
 auszuführen**. Dort wurde ausschließlich Bestand erhoben:
 [VPS-Inventar mit Architektur, Dateien und Versionsdrift](docs/vps-inventory-2026-10-03.md).
-Diese Anleitung ist aus der funktionierenden Installation abgeleitet; sie ist
-noch keine bestätigte Raspberry-Pi-End-to-End-Abnahme.
-Der [Clientabgleich](docs/pi-host-client-abgleich-2026-10-03.md) hält die bereits
-geklärten Befunde fest; der [Mac-Testplan](docs/pi-host-testplan.md) beschreibt
-die spätere Abnahme des integrierten v0.1.1-Stands.
+Die Einrichtung wurde auf einem Raspberry Pi 4 mit Ubuntu 26.04.1 LTS ARM64
+praktisch End-to-End mit einem echten Android-Tablet abgenommen.
+[Datierter Host-/Mac-Nachweis](docs/verification-pi-host-2026-10-03.md),
+[Android-/Trusted-LAN-Abnahme](android/VERIFICATION-TRUSTED-LAN.md) und
+[reproduzierbarer Testplan](docs/pi-host-testplan.md) dokumentieren den Umfang.
+Der [Clientabgleich](docs/pi-host-client-abgleich-2026-10-03.md) bleibt der
+historische Befund vor dieser Implementierung und Abnahme.
 
 ## 1. Plattform und Voraussetzungen
 
-Ziel: Raspberry Pi 4, **64-bit-OS und ARM64-Userspace**, headless, dauerhaft im LAN.
+Praktisch getestet: Raspberry Pi 4, Ubuntu 26.04.1 LTS, **ARM64/AArch64**.
+Für neue Hosts: **64-bit-OS und ARM64-Userspace**, headless, dauerhaft im LAN.
 Bevorzugt Raspberry Pi OS Lite 64-bit mit Python mindestens 3.12; alternativ
 Ubuntu Server 24.04 ARM64 oder ein geeignetes Debian-basiertes 64-bit-System.
 Debian-12-/ältere Pi-Images mit Python 3.11 erfüllen den dokumentierten
@@ -34,13 +37,13 @@ Kein lokales LLM, Android SDK, Docker oder Desktop gehört zur Host-Baseline.
 
 | Komponente | ARM64-Einstufung | Nachweis / noch offen |
 | --- | --- | --- |
-| Pi 4 mit Lite-64-bit / Ubuntu ARM64 | sicher kompatible Plattform | ARM64-OS vorgesehen; tatsächlich installiertes Image/Python prüfen |
-| Python-Adapter, stdlib, systemd, Git, sudo, curl | sicher ARM64-verfügbar | keine pip-Abhängigkeiten; Adapterablauf auf Pi noch abzunehmen |
-| Bewusst ausgewähltes aktuelles/unterstütztes Codex-Release und seine benötigten Helper | ARM64-Paket zum Installationszeitpunkt prüfen; Laufzeit noch zu testen | vollständiges offizielles Release samt verifiziertem Digest; Binary und Helper aus demselben Release |
+| Pi 4 mit Lite-64-bit / Ubuntu ARM64 | sicher kompatible Plattform | Ubuntu 26.04.1 LTS ARM64 praktisch bestätigt; andere Images separat prüfen |
+| Python-Adapter, stdlib, systemd, Git, sudo, curl | sicher ARM64-verfügbar | keine pip-Abhängigkeiten; Adapter, systemd und sudo auf Pi bestätigt |
+| Bewusst ausgewähltes aktuelles/unterstütztes Codex-Release und seine benötigten Helper | 0.160.0 in der datierten Pi-Abnahme bestätigt | vollständiges Release, Helper/Ressourcen und SHA-256 geprüft; neue Versionen separat abnehmen |
 | Workspace-Rename über `ctypes`/libc `renameat2`, descriptor-relative FS | wahrscheinlich kompatibel | Linux-ABI/Kernel; No-Replace- und sichere Delete-Tests auf Pi erforderlich |
-| Caddy / Tailscale, optional | ARM64 verfügbar, gewählter Transport noch zu testen | Distributionspaket/Installation, TLS und SSE auf Pi prüfen |
+| Caddy / Tailscale, optional | Caddy auf ARM64 praktisch bestätigt | privates LAN-HTTP und SSE geprüft; Tailscale/lokales TLS separat abnehmen |
 | Node/MCP-Plugins, optionale Projekttoolchains | wahrscheinlich / einzeln noch zu testen | benötigt nur bei tatsächlich verwendeten Erweiterungen; native npm-Pakete gesondert prüfen |
-| Android APK auf Android-Tablet | von Host-CPU unabhängig | nicht auf dem Pi bauen müssen; LAN-Policy/SDK-37-Berechtigung noch offen |
+| Android APK auf Android-Tablet | von Host-CPU unabhängig | HONOR YLE-W09/API 36 gegen Pi bestanden; API-37-Dialog noch offen |
 | aktuelle x86_64-Codex-Binaries und `/opt/node-v22.23.2-linux-x64` | inkompatibel als native Pi-Binaries | ARM64 neu installieren; kein Kopieren der VPS-Binaries |
 
 Die datierte VPS-Inventur dokumentiert ausschließlich den damaligen Dienststand,
@@ -369,21 +372,18 @@ Der Benutzer ist zunächst unprivilegiert, administrative Kommandos verwenden su
 
 ## 10. Netzwerk und Android-Verbindung
 
-**Heute im Code:** Android OkHttp → HTTPS/JSON/Multi­part/SSE/Downloads → Caddy →
-HTTP Loopback → Adapter → stdio App Server. URL und Token sind in Einstellungen
-änderbar; `BuildConfig.SERVER_URL` ist nur der überschreibbare Default.
-Redirects und automatische POST-Retries sind deaktiviert. Keine externe
-VPS-/Reverseproxy-Abhängigkeit der fachlichen API.
+**Im Code und praktisch bestätigt:** Android OkHttp → HTTPS oder ausdrücklich
+freigegebenes privates LAN-HTTP → Caddy → HTTP Loopback → Adapter → stdio App Server.
+URL und Token sind in Einstellungen änderbar; `BuildConfig.SERVER_URL` ist nur
+der überschreibbare Default. Redirects und automatische POST-Retries sind deaktiviert.
+Keine externe VPS-/Reverseproxy-Abhängigkeit der fachlichen API.
 
-**Direktes `http://192.168.x.x:8765` funktioniert heute nicht:**
-Adapter bindet fest Loopback; `ConnectionSettings.kt` akzeptiert HTTP nur in
-Debug für `127.0.0.1`, `localhost`, `::1`, `10.0.2.2`. Releasemanifest blockiert
-Cleartext, Debug erlaubt ihn zwar grundsätzlich, aber der URL-Validator blockiert
-LAN-Adressen weiterhin. Eine Build-Default-Änderung allein reicht nicht.
-Die folgende LAN-Variante ist vorbereitet/documentiert, **noch nicht implementiert
-oder praktisch abgenommen**, siehe [ADR 0006](docs/decisions/0006-private-host-transport.md).
+Der Adapter bindet weiterhin ausschließlich `127.0.0.1:8765`.
+Direkter LAN-Zugriff erfolgt über den lokalen Caddy, in der Abnahme
+`http://172.16.16.39:8876`. [ADR 0006](docs/decisions/0006-private-host-transport.md)
+und [Tablet-Prüfbericht](android/VERIFICATION-TRUSTED-LAN.md) beschreiben die Grenzen.
 
-### A. Gegenwärtig möglicher privater Zugang: Tailscale HTTPS
+### A. Optionaler privater Zugang: Tailscale HTTPS
 
 Optionaler Weg ohne öffentlichen VPS/Proxy, ohne Android-Cleartextänderung:
 Tailscale auf Pi und Tablet installieren und mit demselben privaten Tailnet
@@ -409,46 +409,27 @@ neu eingeben, „Verbindung testen“, „Speichern“. Serve bleibt tailnetinte
 Falls Target-SDK-37-Netzwerkregeln die konkrete VPN-/Privatroute erfassen, ist
 zusätzlich die unten beschriebene Android-Runtimeberechtigung nötig.
 
-### B. Reines LAN über HTTP, späterer minimaler Android-Schritt
+### B. Reines LAN über HTTP mit ausdrücklicher Android-Zustimmung
 
-Für beliebige konfigurierbare IPs unterstützt Android Network Security Configuration
-keine CIDR-Whitelist. Zwei geeignete Varianten:
+Die Android-App unterstützt **Privates LAN über HTTP erlauben** auch im
+Release-Client. HTTPS bleibt Standard; die Option ist standardmäßig aus.
+HTTP ist nur für literale RFC1918-IPv4-Adressen (`10/8`, `172.16/12`,
+`192.168/16`) mit ausdrücklicher Zustimmung erlaubt. Die Zustimmung ist an
+die normalisierte URL mit Schema, Host und Port gebunden; URL-Wechsel setzt
+sie zurück und verlangt erneute Token-Eingabe. Öffentliches HTTP, DNS-Namen
+über HTTP und IPv6-HTTP bleiben für diesen LAN-Modus gesperrt.
 
-1. Bei bekanntem dauerhaftem DNS-Namen oder einer festen IP ein
-   `<domain-config cleartextTrafficPermitted="true">` nur für diesen Host
-   mit `<domain includeSubdomains="false">codexpad-pi.lan</domain>` und
-   `<base-config cleartextTrafficPermitted="false"/>` verwenden. Für andere
-   IPs ist eine passende Konfiguration/Neubuild erforderlich.
-2. Für frei konfigurierbare LAN-/Tailscale-IP-Adressen eine ausdrückliche
-   persönliche „Trusted LAN HTTP“-Option in den Verbindungseinstellungen
-   implementieren. Dazu eine Network Security Configuration mit
-   `base-config cleartextTrafficPermitted="true"` und ergänzende URL-Prüfung:
-   HTTP nur mit bewusst aktivierter, an die konkrete URL gebundener Option
-   für validierte private IPv4-/IPv6-/Tailnetziele akzeptieren. Keine pauschale
-   Freigabe beliebiger öffentlicher HTTP-Hosts, keine Regex für nur `192.168`.
-   HTTPS bleibt weiterhin akzeptiert; es braucht keinen Trust-all-TLS-Client.
+Network Security Configuration erlaubt Cleartext auf Plattformebene, da XML
+keine dynamische CIDR-/Zustimmungsregel ausdrückt. Die zusätzliche App-Policy
+prüft Laden, Speichern, Verbindungstest und API-Konstruktor. Debug-Ausnahmen
+für Loopback/Emulator sind separat in [android/README.md](android/README.md#verbindungseinstellungen)
+dokumentiert. TLS-Trustanker und Hostnameprüfung bleiben unverändert.
 
-Beispiel der Plattformdatei für Variante 2, **kein vorhandenes Repositoryfeature**:
+**HTTP überträgt Bearer-Token und Inhalte im LAN unverschlüsselt.** Nur im
+bewusst vertrauten privaten Netzwerk aktivieren. In Android die private
+Proxy-URL eintragen, Schalter aktivieren, Token eingeben, testen und speichern.
 
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<!-- android/app/src/main/res/xml/network_security_config.xml -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-</network-security-config>
-```
-
-Das `<application>` erhält `android:networkSecurityConfig="@xml/network_security_config"`.
-Main-/Debugmanifest zusammen prüfen; mit NSC entscheidet die XML-Policy.
-Zusätzlich `normalizeServerUrl`, Laden/Speichern in `SettingsStore`, ViewModel
-und deren Tests anpassen: bestehender `allowLocalHttp=BuildConfig.DEBUG`-Pfad
-erlaubt nur Loopback und genügt nicht. HTTP-Bearer ist im LAN unverschlüsselt;
-diese Wahl muss ausdrücklich zum vertrauten lokalen Netz passen.
-[Android Network Security Configuration](https://developer.android.com/privacy-and-security/security-config).
-
-Der Adapter kann unverändert Loopback behalten. Ein **lokaler** Proxy ist eine
-kleine Betriebsoption, keine externe VPS-Abhängigkeit. Erst nach Androidänderung
-auf dem frischen Pi z. B. Caddy installieren und ausschließlich an seine feste
+Der Adapter behält Loopback. Auf einem frischen Pi Caddy ausschließlich an die feste
 LAN-IP binden. IP im nächsten Block am Prompt eingeben, nicht hardcoden:
 
 ```bash
@@ -496,24 +477,25 @@ DNS-Provider/ACME-Client ist noch nicht ausgewählt. Der VPS-Caddyblock mit
 
 ### Android 17 / SDK 37: lokale Netzwerkberechtigung
 
-Das Projekt verwendet **compileSdk=37, targetSdk=37**, nicht erst einen
-zukünftigen Target-Bump. Im Mainmanifest steht derzeit nur `INTERNET`, kein
-`ACCESS_LOCAL_NETWORK`, und es gibt keinen zugehörigen Runtimeablauf.
-Nach der aktuellen [Android-LAN-Dokumentation](https://developer.android.com/privacy-and-security/local-network-permission)
-ist für direkte lokale Verbindungen unter Android 17 mit Target 37+ die
-Deklaration `android.permission.ACCESS_LOCAL_NETWORK` und deren Runtime-Anfrage
-vor Zugriff erforderlich; Ablehnung/Widerruf müssen sichtbar behandelt werden.
-Auf älteren Android-Versionen den neuen Permissionrequest per API-Level absichern.
-Android 16 kann seine LAN-Einschränkung per Kompatibilitätsflag opt-in testen;
-die dortige temporäre `NEARBY_WIFI_DEVICES`-Regel nicht mit SDK-37-Verhalten verwechseln.
-Dies gilt auch für HTTPS im LAN und ist getrennt von Cleartext sowie Codex-Approvals.
-Eine zwingende Android-Systemberechtigung darf nicht durch Codex-`never` umgangen werden.
+Das Projekt verwendet **compileSdk=37, targetSdk=37**. `ACCESS_LOCAL_NETWORK`
+ist im Mainmanifest deklariert; ab Android 17/API 37 prüft die App den aktuellen
+Grant vor LAN-Zugriff, auch für private HTTPS-Ziele, DNS-Ergebnisse und bestehende
+Verbindungen. Ablehnung/Widerruf pausieren Sessions und Transfers; ein expliziter
+Berechtigungsbutton führt zur Runtime-Anfrage. Es gibt keine Promptschleifen.
+Ältere APIs fragen diese Berechtigung nicht ab.
+
+Policy-/Transporttests für Grant, Ablehnung und Widerruf bestehen. Der echte
+Android-17-/API-37-Systemdialog bleibt mangels passendem Gerät praktisch ungetestet;
+die Pi-Tablet-Abnahme lief auf Android 16/API 36. Die Systemberechtigung ist von
+Cleartext-Zustimmung und Codex-Approvals getrennt.
+[Prüfbericht](android/VERIFICATION-TRUSTED-LAN.md).
 
 ## 11. Vollständiger Smoke-Test auf dem neuen Host
 
 Die folgenden **mutierenden** Tests wurden auf dem Referenz-VPS bewusst nicht
-ausgeführt. Erst auf dem frisch eingerichteten Pi und in `host-smoke` durchführen.
-Bis dahin kein „Pi funktioniert vollständig“-Status.
+ausgeführt. Auf dem Pi wurden die Kernprüfungen in `host-smoke` erfolgreich
+durchgeführt; [Abnahmestatus und verbleibende Prüfungen](docs/verification-pi-host-2026-10-03.md).
+Auf neuen Hosts erneut abnehmen. Reboot und Dauerlast sind weiterhin offen.
 
 1. Version/Policy/Netzwerk verifizieren:
 
@@ -677,7 +659,7 @@ bestehende SSE, neues Token in Android speichern. Keine OpenAI-Rotation nötig.
 | Helper fehlt / Code Mode startet nicht | alle von der gewählten Version benötigten Helper wie `codex-code-mode-host` und Ressourcen aus demselben vollständigen Release prüfen, einschließlich Pfaden und ausführbaren Rechten |
 | `/health` ok, Agent scheitert | Health prüft nur lebendes Kind, nicht Modelllogin/Toolrechte; Auth und tatsächlichen Turn prüfen |
 | 503 bei weiter aktivem Adapter | Codex-Kind ausgefallen; Hauptprozess wird dadurch nicht automatisch restarted; nach Fehlerklärung `systemctl restart codexpad` |
-| HTTP-LAN-URL wird abgelehnt | aktueller URL-Validator/Mainmanifest; Abschnitt 10B ist noch umzusetzen, Default-URL ändern reicht nicht |
+| HTTP-LAN-URL wird abgelehnt | RFC1918-IPv4, ausdrückliche Zustimmung und Schema/Host/Port prüfen; Abschnitt 10B, Default-URL ändern reicht nicht |
 | HTTP erlaubt, Verbindung trotzdem blockiert | Loopback/Proxybindung, WLAN-Clientisolation, Routing, Firewall, Target-37-LAN-Runtimeberechtigung |
 | 401 | richtiges Pad-Token, URL-Bindung im Keystore, anderer Server verlangt erneute Token-Eingabe; OpenAI-Login behebt keine Pad-Auth |
 | TLS-/Zertifikatsfehler | Uhrzeit/DNS/Zertifikatskette/Trustanker; nie Zertifikatsprüfung abschalten oder HTTP-Redirect erwarten |
@@ -687,13 +669,13 @@ bestehende SSE, neues Token in Android speichern. Keine OpenAI-Rotation nötig.
 | Workspace fehlt / Rename gesperrt | direkter Unterordner, kein Symlink, Dienstrechte; Threads mit absoluten CWDs blockieren Rename/Delete absichtlich |
 | Plugin scheitert | separater Drittanbieterlogin, ARM64-Node/native Pakete, kein x64-Pfad; Basis-HTTP funktioniert ohne dieses Plugin |
 
-Ein monolithisches `setup-host.sh` wird noch nicht eingeführt: Netzwerkweg und
-Android-LAN-Vertrag benötigen praktische Abnahme. Der historische VPS hatte einen
-nicht im Release-Marker enthaltenen Overlay; dessen Verhalten ist im aktuellen
+Ein monolithisches `setup-host.sh` wird noch nicht eingeführt. Netzwerkweg und
+Android-LAN-Vertrag sind im dokumentierten Pi-Aufbau praktisch abgenommen.
+Der historische VPS hatte einen nicht im Release-Marker enthaltenen Overlay; dessen Verhalten ist im aktuellen
 Produktstand bereits integriert. Blindes Reprovisionieren könnte die
 funktionierende Referenz überschreiben. Die vorhandene Standalone-Installroutine,
 gepinnten Download-Digests, Unit und expliziten frischen Setupblöcke liefern
 bereits reproduzierbare Schritte. Token-/Configanlage verweigert Überschreiben;
-der gesamte Ablauf ist keine idempotente Bestandsmigration. Nach Pi-Abnahme kann
-eine Provisionierung mit Fresh-Host-Guard, Versionsprüfung, atomarem Install und
+der gesamte Ablauf ist keine idempotente Bestandsmigration. Eine spätere
+Provisionierung kann mit Fresh-Host-Guard, Versionsprüfung, atomarem Install und
 getrenntem Auth-/Netzwerkschritt daraus abgeleitet werden.

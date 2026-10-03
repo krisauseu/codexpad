@@ -1,13 +1,11 @@
 # CodexPad Android 0.1.1
 
-Host-Einrichtung und Pi-Ziel: [HOST_SETUP](../HOST_SETUP.md#10-netzwerk-und-android-verbindung).
-Stand 3. Oktober 2026: Direktes LAN-HTTP ist trotz einstellbarer Serveradresse
-noch durch URLvalidierung und Release-Cleartextpolicy blockiert; Debug erlaubt
-nur Loopback/Emulator. Die minimalen NSC-/Validatoränderungen sind dort beschrieben,
-hier noch nicht implementiert. Target SDK ist bereits 37; Android 17 benötigt
-für direkten LAN-Zugriff zusätzlich `ACCESS_LOCAL_NETWORK` samt Runtimebehandlung,
-die momentan fehlt. HTTPS bleibt konfigurierbar. Dies ist eine Android-System-
-berechtigung, keine gewöhnliche Codex-Approvalanfrage.
+Host-Einrichtung und praktisch bestätigter Pi-Betrieb: [HOST_SETUP](../HOST_SETUP.md#10-netzwerk-und-android-verbindung).
+Stand 3. Oktober 2026: Direktes privates LAN-HTTP ist mit ausdrücklicher,
+an die Serveradresse gebundener Freigabe verfügbar. Target SDK bleibt 37;
+`ACCESS_LOCAL_NETWORK` ist ab Android 17 mit Runtimeprüfung angebunden.
+Die Systemberechtigung ist von fachlichen Codex-Rückfragen getrennt.
+[Implementierung und Pi-Tablet-Abnahme](VERIFICATION-TRUSTED-LAN.md).
 
 Nativer persönlicher Single-User-Client für die vorhandene CodexPad-HTTP-API. Workspaces → Threads → Thread-Detail sowie Verbindungseinstellungen. Keine zusätzlichen Hostfähigkeiten. [Build- und Tablet-Nachweis](VERIFICATION.md).
 
@@ -65,11 +63,18 @@ es bei. Eine andere Serveradresse verlangt eine erneute Token-Eingabe. Neue Eing
 sind vollständig maskiert, ohne Anzeige-Button, ohne Saved-State-Persistenz und ohne
 Klartext-Logging. Screenshots der App sind möglich; vor dem Teilen sichtbare Gesprächsinhalte prüfen.
 Android Keystore hält einen AES-256-Schlüssel; app-private Preferences enthalten nur
-AES-GCM-Ciphertext, zufälligen IV und die URL. Die URL ist als AAD an das Token gebunden.
+AES-GCM-Ciphertext, zufälligen IV, URL und deren nicht geheime LAN-HTTP-Freigabe. Die URL ist als AAD an das Token gebunden.
 Keystore-Zugriffe laufen auf einem IO-Dispatcher. Bei Schlüsselverlust neu eingeben;
 kein Klartext-Fallback. Backup und Device-Transfer bleiben abgeschaltet.
 
-HTTPS ist für frei wählbare Server verpflichtend. Debug erlaubt außerdem HTTP für
+HTTPS bleibt für alle Server zulässig. Für private IPv4-Adressen aus `10/8`,
+`172.16/12` oder `192.168/16` kann **Privates LAN über HTTP erlauben** bewusst
+aktiviert werden, zum Beispiel für `http://172.16.16.39:8876`. Die Option ist
+standardmäßig aus und gilt nur für die normalisierte Serveradresse einschließlich
+Schema und Port. Ein Adresswechsel setzt die Zustimmung zurück. Öffentliche IPs
+und DNS-Namen erhalten keine HTTP-Freigabe; IPv6-HTTP bleibt im regulären LAN-Modus gesperrt.
+HTTP überträgt Token und Inhalte unverschlüsselt und ist nur für ein
+vertrauenswürdiges privates LAN gedacht. Debug erlaubt außerdem HTTP für
 `127.0.0.1`, `localhost`, `::1` und Emulatorhost `10.0.2.2`. Für die bisherige Entwicklung
 `http://127.0.0.1:8765` in den Einstellungen eintragen und ADB-Reverse setzen:
 
@@ -78,10 +83,23 @@ adb reverse tcp:8765 tcp:8765
 ```
 
 Ein vorhandener lokaler SSH-Tunnel zum VPS kann wie bisher dahinter liegen. Auch Debug
-braucht nun das Server-Token. Die Release-App verbietet Cleartext. URLs mit eingebetteten
+braucht das Server-Token. Die LAN-Freigabe steht auch im Release-Client zur Verfügung. URLs mit eingebetteten
 Zugangsdaten, Query, Fragment oder zusätzlichem Pfad werden abgelehnt; Redirects werden
 nie verfolgt. `-Pcodexpad.serverUrl=...` ändert bei Bedarf nur den Build-Default, nie ein
 Token und nie bereits gespeicherte Einstellungen.
+
+Ab Android 17 ist vor LAN-Verkehr zusätzlich der aktuelle Grant für
+`ACCESS_LOCAL_NETWORK` erforderlich, auch für private HTTPS-Ziele und per DNS
+aufgelöste LAN-Adressen. Bei fehlender Berechtigung erscheint eine verständliche
+Meldung mit einem expliziten Berechtigungsbutton. Ablehnung/Widerruf sperren auch
+Sessions, Reconnect, SSE und Transfers; automatische Permission-Prompts gibt es
+nicht. Ältere Android-Versionen bleiben ohne diese Runtimeanforderung. Der echte
+API-37-Systemdialog ist mangels API-37-Gerät noch nicht praktisch getestet;
+die erfolgreiche Pi-Abnahme lief auf HONOR YLE-W09, Android 16/API 36.
+
+Die statische Network Security Configuration ermöglicht Cleartext technisch;
+die URLpolicy entscheidet zusätzlich beim Laden, Speichern und Erstellen jedes
+API-Clients. TLS verwendet weiterhin System-Trustanker und Hostnameprüfung.
 
 [Direkter HTTPS-Betrieb und einmalige VPS-/DNS-Schritte](../docs/deployment.md).
 
@@ -92,6 +110,7 @@ app/src/main/java/dev/codexpad/
   MainActivity.kt          Activity und Compose-Einstieg
   model/Models.kt          kleine Anzeigeobjekte und JSON-Parser
   network/CodexPadApi.kt   HTTP, Timeouts, abbrechbares SSE, keine POST-Retries
+  network/LocalNetworkPolicy.kt  aktuelle LAN-Permission für alle Transports
   network/SseParser.kt     SSE-Zeilenframing
   data/Timeline.kt         History plus vorläufige Live-Items
   data/ThreadSession.kt    Vordergrundverbindung und Wiederabgleich
@@ -160,12 +179,12 @@ feststellt. Ein neuerer Turn wird niemals als Ersatz für den ursprünglichen ge
 
 ## Grenzen / Folgepunkte
 
-- Tablet-Lauf gegen lokale Vertragsfixtures und [historischer Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Dies ist kein aktueller Codex-Betriebs-/Supportstand; die gewählte Pi-Version separat abnehmen. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
+- Tablet-Lauf gegen lokale Vertragsfixtures und [historischer Interrupt-/Fortsetzungs-Lauf gegen VPS mit Codex 0.156.1](../docs/verification-interrupt.md) erfolgreich. Dies ist kein aktueller Codex-Betriebs-/Supportstand; Pi 4/Ubuntu 26.04.1 ARM64 wurde mit Codex 0.160.0 separat [End-to-End abgenommen](../docs/verification-pi-host-2026-10-03.md); neue Versionen erneut prüfen. Gezielter HTTP-Antwortverlust und exaktes Turn-Ende-Rennen sind automatisiert mit Testgegenstellen geprüft.
 - Nur Nutzung bei offener App, keine Push-/Hintergrundzusage. Kein Terminal, Dateimanager, Git-UI, Editor, Approval-UI (die vorhandene API besitzt diese Endpunkte nicht).
 - Textdarstellung ohne Markdown-Engine; Bilder als Vorschau im Composer und Typmarker in der History, noch ohne dauerhafte History-Bildvorschau. Tool-Items nur Typ/Status.
 - Vollständige Legacy-History ohne Pagination; für sehr lange Unterhaltungen noch nicht optimiert.
 - Vorschau plus ID statt eigenem Threadtitel. Titel/Renaming ist ein UX-Folgepunkt, kein neues Serverfeld.
-- Konkretes Referenztablet, Hardwaretastatur, TalkBack, sehr große Schrift und Split-Screen müssen am Gerät geprüft werden.
+- Referenztablet: HONOR YLE-W09, Android 16/API 36. Hardwaretastatur, TalkBack, sehr große Schrift und Split-Screen bleiben gesonderte Geräteprüfungen.
 - ADR 0004 konkretisiert den Single-User-HTTPS-/Token-Vertrag; die übrigen ADRs bleiben unverändert.
 
 ## Lokale Vertragstests ohne Codex-Account
@@ -188,7 +207,7 @@ CODEXPAD_CONTRACT_URL=http://127.0.0.1:18765 android/build-local.sh :app:testDeb
 
 Kein `set -x` oder Environment-Dump verwenden. Die Gegenstelle bindet nur Loopback,
 importiert den echten Python-Handler und ersetzt ausschließlich das interne Codex-Backend.
-Ohne `CODEXPAD_CONTRACT_URL` wird dieser einzelne Test übersprungen. Keine Modellaufrufe,
+Ohne `CODEXPAD_CONTRACT_URL` werden die beiden Python-Vertragstests übersprungen. Keine Modellaufrufe,
 keine echten Projekte und kein VPS-Zugriff. Der Vertragstest prüft Token-Header auch
 für POST/SSE, History, Disconnect, Reconnect und Fortsetzen.
 

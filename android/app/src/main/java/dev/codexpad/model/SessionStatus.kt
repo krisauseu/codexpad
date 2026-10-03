@@ -62,8 +62,9 @@ data class WeeklyLimit(val remainingPercent: Int? = null, val resetsAt: Long? = 
 internal fun JSONObject.nonnegativeLong(key: String): Long? =
     (opt(key) as? Number)?.toDouble()?.takeIf { it.isFinite() && it >= 0 && it < Long.MAX_VALUE.toDouble() && it % 1.0 == 0.0 }?.toLong()
 
-fun Turn.runningLabel(nowSeconds: Long): String {
-    val duration = startedAt?.let { (nowSeconds - it).coerceAtLeast(0) }
-    val elapsed = duration?.let { "${it / 60}:${(it % 60).toString().padStart(2, '0')}" } ?: "Dauer unbekannt"
-    return "Turn ${id.take(8)} · $elapsed"
+fun Turn.runningDuration(nowSeconds: Long): String? {
+    if (status != "inProgress") return null
+    val start = startedAt?.takeIf { it >= 0 && it <= nowSeconds } ?: return null
+    val duration = nowSeconds - start
+    return "${duration / 60}:${(duration % 60).toString().padStart(2, '0')}"
 }

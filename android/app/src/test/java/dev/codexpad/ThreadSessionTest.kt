@@ -59,7 +59,7 @@ class ThreadSessionTest {
         fun snapshot() = CodexThread("t", status = if (completed) "idle" else "active", turns = listOf(
             Turn("turn", if (completed) terminalStatus else "inProgress",
                 listOf(Message("legacy-2", "agentMessage", if (completed) "Complete answer" else "Prefix")) +
-                    if (toolMode) listOf(Wire.message(toolJson())) else emptyList())), pendingRequests = if (pendingRequest) Wire.thread(org.json.JSONObject()
+                    (if (toolMode) listOf(Wire.message(toolJson())) else emptyList()), startedAt = 1000)), pendingRequests = if (pendingRequest) Wire.thread(org.json.JSONObject()
                     .put("id", "t").put("pendingRequests", org.json.JSONArray().put(requestJson()))).pendingRequests else emptyList())
         override suspend fun thread(threadId: String): CodexThread { calls += "snapshot"; return snapshot() }
         override suspend fun history(threadId: String): CodexThread { calls += "history"; return snapshot() }
@@ -69,7 +69,7 @@ class ThreadSessionTest {
             val status = if (completed) terminalStatus else "inProgress"
             val text = if (completed) "Complete answer" else "Prefix"
             val snapshotJson = org.json.JSONObject("""{"thread":{"id":"t","model":"configured","reasoningEffort":"custom","status":{"type":"idle"},"turns":[
-                {"id":"turn","status":"$status","items":[{"id":"legacy-2","type":"agentMessage","text":"$text"}]}]}}""")
+                {"id":"turn","status":"$status","startedAt":1000,"items":[{"id":"legacy-2","type":"agentMessage","text":"$text"}]}]}}""")
             if (pendingRequest) snapshotJson.getJSONObject("thread").put("pendingRequests", org.json.JSONArray().put(requestJson()))
             if (toolMode) snapshotJson.getJSONObject("thread").getJSONArray("turns").getJSONObject(0)
                 .getJSONArray("items").put(toolJson())
@@ -236,11 +236,13 @@ class ThreadSessionTest {
         advanceTimeBy(5000); runCurrent()
         assertNull(session.state.value.interruptTurnId)
         assertEquals("interrupted", session.state.value.timeline.turns.single().status)
+        assertFalse(session.state.value.statusLabel(1102).contains("1:42"))
+        assertNull(session.state.value.runningTurn)
         assertEquals(listOf("turn", null), saved)
     }
 
     @Test fun completionRaceUsesActualTerminalStatusEvenWhenHttpFails() = runTest {
-        for (status in listOf("interrupted", "completed", "failed")) {
+        for (status in listOf("interrupted", "completed", "failed", "cancelled", "stopped")) {
             val server = FakeServer()
             val session = ThreadSession(server, "t")
             val job = backgroundScope.launch { session.run() }; runCurrent()
@@ -251,6 +253,7 @@ class ThreadSessionTest {
             }
             session.interrupt("turn")
             assertEquals(status, session.state.value.timeline.turns.single().status)
+            assertNull(session.state.value.runningTurn)
             assertNull(session.state.value.interruptTurnId)
             assertNull(session.state.value.interruptError)
             assertEquals(1, server.interruptCalls)
@@ -309,10 +312,13 @@ class ThreadSessionTest {
         val job = backgroundScope.launch { session.run() }
         runCurrent()
         assertFalse(session.state.value.connected)
+        assertTrue(session.state.value.statusLabel(1102).contains("1:42"))
         advanceTimeBy(1000); runCurrent()
         assertTrue(session.state.value.connected)
         assertEquals(listOf("snapshot", "history", "events", "snapshot", "history", "events"), server.calls)
         assertEquals("Complete answer", session.state.value.timeline.turns.single().items.single().text)
+        assertNull(session.state.value.runningTurn)
+        assertFalse(session.state.value.statusLabel(1102).contains("1:42"))
         assertEquals(0, server.posts)
         job.cancel(); runCurrent()
         assertFalse(session.state.value.connected)

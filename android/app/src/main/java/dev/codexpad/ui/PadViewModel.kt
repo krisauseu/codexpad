@@ -245,11 +245,6 @@ class PadViewModel(application: Application, private val saved: SavedStateHandle
         })
     }
 
-    fun compact(target: ThreadSession) {
-        if (session !== target || sending || uncertain) return
-        viewModelScope.launch { target.compact() }
-    }
-
     fun stop(target: ThreadSession, turnId: String) {
         if (session !== target) return
         viewModelScope.launch { target.interrupt(turnId) }

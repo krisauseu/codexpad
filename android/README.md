@@ -1,4 +1,4 @@
-# CodexPad Android 0.1
+# CodexPad Android 0.1.1
 
 Nativer persönlicher Single-User-Client für die vorhandene CodexPad-HTTP-API. Workspaces → Threads → Thread-Detail sowie Verbindungseinstellungen. Keine zusätzlichen Hostfähigkeiten. [Build- und Tablet-Nachweis](VERIFICATION.md).
 
@@ -14,6 +14,32 @@ android/build-local.sh
 Führt `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug` aus. APK: `android/app/build/outputs/apk/debug/app-debug.apk`. Erster Lauf benötigt Internet für Gradle/Google Maven/Maven Central. Der eingecheckte Gradle-Wrapper prüft den Distributions-SHA-256. Android Studio: Ordner `android/` öffnen, Gradle-JDK auf das mitgelieferte JBR setzen und SDK 37 installieren, falls auf einem anderen Mac noch nicht vorhanden. Alternativ mit JDK 17+ (hier tatsächlich Java 25 getestet) und konfiguriertem SDK `./gradlew` aufrufen.
 
 Gepinnt: AGP 9.3.3, Gradle 9.5.0, AGPs eingebautes Kotlin 2.2.10 samt Compose-Compiler 2.2.10; Compose BOM 2026.09.00, Activity 1.13.0, Lifecycle 2.11.0, Coroutines 1.10.2, OkHttp 4.12.0. minSdk 26 (Android 8), compile/targetSdk 37 (Android 17), Java/Kotlin-Bytecode 17. Keine Preview-Abhängigkeiten. Versionsgrundlagen: [AGP 9.3](https://developer.android.com/build/releases/agp-9-3-0-release-notes), [Compose BOM](https://developer.android.com/develop/ui/compose/bom), [Activity](https://developer.android.com/jetpack/androidx/releases/activity), [Lifecycle](https://developer.android.com/jetpack/androidx/releases/lifecycle).
+
+## Persönlicher Pre-Release
+
+`v0.1.0` wurde als Debug-/Test-APK veröffentlicht. `v0.1.1` verwendet den
+Release-Build (nicht debuggable), weiterhin signiert mit dem vorhandenen lokalen
+Android-Testzertifikat für datenbewahrende Updates der bisherigen Installation:
+
+```sh
+android/build-local.sh :app:assembleRelease :app:lintRelease -Pcodexpad.testSignedRelease=true
+```
+
+Ohne diese explizite Eigenschaft bleibt der Release-Build unsigniert. Keystore und
+APKs werden nicht eingecheckt. Das ist weiterhin ein persönlicher Test-Release;
+eine separate Produktionssignierung ist noch nicht eingerichtet.
+
+Der gezielte Realgerätetest verwendet gespeicherte Verbindungseinstellungen und
+einen ausdrücklich übergebenen bestehenden Prüfthread im Workspace `testprojekt`.
+Er startet genau einen kurzen echten Turn, prüft die sichtbare Statuszeile sowie
+erneutes Öffnen und Reconnect; er exportiert keine Zugangsdaten:
+
+```sh
+android/build-local.sh :app:assembleDebug :app:assembleDebugAndroidTest -Pcodexpad.testRunner=dev.codexpad.StatuslineTabletTestRunner
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb shell am instrument -w -e thread <bestehende-Prüfthread-ID> dev.codexpad.test/dev.codexpad.StatuslineTabletTestRunner
+```
 
 ## Verbindungseinstellungen
 
@@ -206,11 +232,14 @@ Reconnect und alle 60 Sekunden erneut. Fehler beeinflussen den Chat nicht und
 kennzeichnen den letzten bekannten Wert als veraltet. Ein Reset wird nicht
 lokal angenommen. `account/updated` verwirft alte Kontolimits und liest neu.
 
-Laufende Turns zeigen ID und Dauer ab dem gemeldeten `startedAt`. Die Uhr
-aktualisiert sich jede Sekunde während sichtbarer, verbundener Anzeige.
-Ohne gemeldete Startzeit bleibt die Dauer unbekannt; offline zeigt sie den
-letzten Stand. History/Events übernehmen außerdem `completedAt` und `durationMs`.
+Nur eindeutig laufende Turns mit gültigem gemeldetem `startedAt` zeigen ihre Dauer,
+ohne Turn-ID. Die Uhr aktualisiert sich jede Sekunde während sichtbarer, verbundener
+Anzeige. Idle, terminale Turns und fehlende Startzeiten zeigen keinerlei Turn-Text;
+offline bleibt der letzte Stand sichtbar. History/Events übernehmen außerdem `completedAt` und `durationMs`.
 Keine Rekonstruktion aus UUID oder Empfangszeit.
+
+Die manuelle Kontextkomprimierung ist aus der Oberfläche entfernt. Automatische
+Codex-Komprimierung und die bestehenden History-/Lifecycle-Abgleiche bleiben erhalten.
 
 [Quellen, Codex-Formel und API-Grenzen](../docs/research/codex-statusline.md).
 

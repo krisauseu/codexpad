@@ -79,7 +79,7 @@ class PolishTabletTestRunner : Instrumentation() {
             awaitCondition { vm.session?.state?.value?.connected == true }
             if (controls) {
                 checkControls(vm)
-                result.putString("stream", "PASS: attachment picker, keyboard, interrupt, compaction and reconnect. THREAD ${vm.threadId}\n")
+                result.putString("stream", "PASS: attachment picker, keyboard, interrupt, absent context action and reconnect. THREAD ${vm.threadId}\n")
                 finish(Activity.RESULT_OK, result)
                 return
             }
@@ -150,11 +150,7 @@ class PolishTabletTestRunner : Instrumentation() {
         click("Stoppen", true)
         awaitCondition(600) { vm.session?.state?.value?.timeline?.turns?.lastOrNull()?.status == "interrupted" }
         screenshot("interrupted")
-        awaitCondition { vm.session?.state?.value?.canCompact == true }
-        click("Kontext", true)
-        click("Kontext komprimieren", true)
-        awaitCondition(1800) { vm.session?.state?.value?.compaction?.phase == "completed" }
-        screenshot("compaction")
+        check(find(uiAutomation.rootInActiveWindow!!) { it.text?.toString() in setOf("Kontext", "Kontext komprimieren") } == null)
         click("Einstellungen", true)
         click("Verbindung testen", true)
         awaitText("Verbunden · Token akzeptiert · Codex bereit")

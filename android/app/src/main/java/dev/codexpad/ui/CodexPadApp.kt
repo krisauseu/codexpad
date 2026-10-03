@@ -36,7 +36,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.codexpad.data.ThreadSession
 import dev.codexpad.data.ThreadState
-import dev.codexpad.model.runningLabel
 import dev.codexpad.model.Message
 import dev.codexpad.model.TransferPolicy
 import kotlinx.coroutines.launch
@@ -48,23 +47,22 @@ import kotlinx.coroutines.withContext
 private fun SessionStatusLine(state: ThreadState) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
-    LaunchedEffect(lifecycle, state.connected) {
+    val running = state.runningTurn
+    LaunchedEffect(lifecycle, state.connected, running?.id, running?.startedAt, state.weekly.resetsAt) {
         now = System.currentTimeMillis() / 1000
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (state.connected) {
                 now = System.currentTimeMillis() / 1000
-                delay(1000)
+                // Only an active, timed turn needs second-by-second updates. Keep limit expiry current in idle.
+                val untilReset = state.weekly.resetsAt?.takeIf { it > now }?.let { (it - now).coerceAtMost(60) * 1000 }
+                delay(if (running?.startedAt != null) 1000 else untilReset ?: 60_000)
             }
         }
     }
-    val thread = state.timeline.thread
-    val running = state.timeline.turns.filter { !it.terminal }.singleOrNull()
-    val turnLabel = running?.runningLabel(now)
-        ?: if (state.timeline.busy) "Turn unbekannt" else "Kein laufender Turn"
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("${thread?.model ?: "Modell unbekannt"} · ${thread?.reasoningEffort ?: "Reasoning unbekannt"}",
+        Text(state.modelLabel,
             style = MaterialTheme.typography.labelMedium)
-        Text("${state.usage.label} · ${state.weekly.label(now)} · $turnLabel${if (!state.connected) " · letzter Stand" else ""}",
+        Text(state.statusLabel(now),
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -194,7 +192,6 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
         } }, confirmButton = { TextButton(onClick = { effortPicker = false }) { Text("Schließen") } })
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    var contextMenu by remember(session) { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
         StatusBadge(state.connection, state.connected)
         Spacer(Modifier.width(8.dp))
@@ -206,16 +203,6 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
             OutlinedButton(onClick = { target?.let { vm.stop(session, it) } }, enabled = target != null,
                 modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(if (state.interruptTurnId != null) "Wird gestoppt …" else "Stoppen")
-            }
-        }
-        Box {
-            TextButton(onClick = { contextMenu = true }) { Text("Kontext") }
-            DropdownMenu(expanded = contextMenu, onDismissRequest = { contextMenu = false }) {
-                Text("Codex fasst den bisherigen Kontext zusammen, um Platz im Kontextfenster zu schaffen.",
-                    modifier = Modifier.widthIn(max = 280.dp).padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                DropdownMenuItem(text = { Text("Kontext komprimieren") },
-                    enabled = state.canCompact && !vm.sending && !vm.uncertain,
-                    onClick = { contextMenu = false; vm.compact(session) })
             }
         }
     }

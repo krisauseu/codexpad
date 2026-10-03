@@ -1,6 +1,7 @@
 package dev.codexpad
 
 import dev.codexpad.data.Timeline
+import dev.codexpad.data.ThreadState
 import dev.codexpad.model.*
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -44,14 +45,68 @@ class SessionStatusTest {
         val thread = CodexThread("t", turns = listOf(Turn("u", "inProgress", emptyList())))
         val start = JSONObject("""{"threadId":"t","turn":{"id":"u","status":"inProgress","startedAt":1000}}""")
         val timeline = Timeline(thread).event("turn/started", start)
-        assertEquals("Turn u · 1:05", timeline.turns.single().runningLabel(1065))
-        assertEquals("Turn u · 0:00", timeline.turns.single().runningLabel(900))
+        assertEquals("1:05", timeline.turns.single().runningDuration(1065))
+        assertNull(timeline.turns.single().runningDuration(900))
         val completed = timeline.event("turn/completed", JSONObject("""{"threadId":"t","turn":{"id":"u","status":"completed","completedAt":1070,"durationMs":70000}}"""))
         assertTrue(completed.turns.single().terminal)
         assertEquals(1000L, completed.turns.single().startedAt)
         assertEquals(70000L, completed.turns.single().durationMs)
         assertEquals(completed, completed.event("turn/started", start))
         val unknown = Wire.turn(JSONObject("""{"id":"u","status":"inProgress","startedAt":null,"durationMs":null}"""))
-        assertTrue(unknown.runningLabel(1065).contains("Dauer unbekannt"))
+        assertNull(unknown.runningDuration(1065))
+    }
+
+    private fun state(turns: List<Turn> = emptyList(), status: String = "idle") = ThreadState(
+        timeline = Timeline(CodexThread("t", status = status, turns = turns, model = "gpt-6-astra", reasoningEffort = "ultra")),
+        usage = ContextStatus(45_000, 112_000), weekly = WeeklyLimit(93), connected = true,
+    )
+
+    @Test fun idleHasOnlyContextAndWeekWithModelAndEffortPreserved() {
+        val idle = state()
+        assertEquals("gpt-6-astra · ultra", idle.modelLabel)
+        assertEquals("Kontext 67 % frei · Woche 93 % frei", idle.statusLabel(1102))
+        assertFalse(idle.statusLabel(1102).contains("Kein laufender Turn"))
+        assertEquals(idle.statusLabel(1102), idle.statusLabel(9999))
+        assertNull(idle.runningTurn)
+    }
+
+    @Test fun runningDurationIsQuietAndRequiresAnUnambiguousStructuredStartTime() {
+        val turn = Turn("u", "inProgress", emptyList(), startedAt = 1000)
+        assertEquals("Kontext 67 % frei · Woche 93 % frei · 1:42", state(listOf(turn)).statusLabel(1102))
+        for (start in listOf(null, -1L, 1200L)) {
+            assertEquals(state().statusLabel(1102), state(listOf(turn.copy(startedAt = start))).statusLabel(1102))
+        }
+        assertEquals(state().statusLabel(1102), state(status = "active").statusLabel(1102))
+        assertEquals(state().statusLabel(1102), state(listOf(turn.copy(status = "unknown"))).statusLabel(1102))
+        assertEquals(state().statusLabel(1102), state(listOf(turn, turn.copy(id = "v"))).statusLabel(1102))
+    }
+
+    @Test fun everyTerminalEventImmediatelyRemovesDurationDespiteStaleActiveThreadStatus() {
+        for (status in listOf("completed", "failed", "cancelled", "stopped", "interrupted")) {
+            val active = state(listOf(Turn("u", "inProgress", emptyList(), startedAt = 1000)), "active")
+            assertTrue(active.statusLabel(1102).endsWith("1:42"))
+            val timeline = active.timeline.event("turn/completed", JSONObject()
+                .put("threadId", "t").put("turn", JSONObject().put("id", "u").put("status", status)))
+            val ended = active.copy(timeline = timeline)
+            assertTrue(ended.timeline.turns.single().terminal)
+            assertNull(ended.runningTurn)
+            assertEquals(state().statusLabel(1102), ended.statusLabel(1102))
+            assertEquals(ended.statusLabel(1102), ended.statusLabel(1202))
+            val late = ended.copy(timeline = ended.timeline.event("turn/started", JSONObject()
+                .put("threadId", "t").put("turn", JSONObject().put("id", "u").put("status", "inProgress").put("startedAt", 1000))))
+            assertEquals(ended.statusLabel(1202), late.statusLabel(1202))
+        }
+    }
+
+    @Test fun reconnectHistoryRestoresActiveDurationAndClearsOfflineCompletion() {
+        val turn = Turn("u", "inProgress", emptyList(), startedAt = 1000)
+        val initial = state(listOf(turn))
+        val offline = initial.copy(connected = false)
+        assertEquals("Kontext 67 % frei · Woche 93 % frei · 1:42 · letzter Stand", offline.statusLabel(1102))
+        val resumed = offline.copy(connected = true, timeline = offline.timeline.reconcile(initial.timeline.thread!!, resetLive = true))
+        assertEquals(initial.statusLabel(1102), resumed.statusLabel(1102))
+        val completed = resumed.copy(timeline = resumed.timeline.reconcile(initial.timeline.thread!!.copy(
+            turns = listOf(turn.copy(status = "completed", completedAt = 1103, durationMs = 103000))), resetLive = true))
+        assertEquals(state().statusLabel(1200), completed.statusLabel(1200))
     }
 }

@@ -5,6 +5,7 @@ import dev.codexpad.model.ContextStatus
 import dev.codexpad.model.WeeklyLimit
 import dev.codexpad.model.ModelReroute
 import dev.codexpad.model.InputAnswer
+import dev.codexpad.model.runningDuration
 import dev.codexpad.network.ApiException
 import dev.codexpad.network.CodexPadService
 import dev.codexpad.network.connectionError
@@ -33,6 +34,13 @@ data class ThreadState(
     val answerSending: Set<String> = emptySet(),
     val answerErrors: Map<String, String> = emptyMap(),
 ) {
+    val runningTurn get() = timeline.turns.filter { !it.terminal }.singleOrNull()?.takeIf { it.status == "inProgress" }
+    val modelLabel get() = "${timeline.thread?.model ?: "Modell unbekannt"} · ${timeline.thread?.reasoningEffort ?: "Reasoning unbekannt"}"
+    fun statusLabel(nowSeconds: Long): String = listOfNotNull(
+        usage.label, weekly.label(nowSeconds), runningTurn?.runningDuration(nowSeconds),
+        "letzter Stand".takeIf { !connected },
+    ).joinToString(" · ")
+
     val requests get() = timeline.thread?.pendingRequests.orEmpty()
     // 0.156.1 turn/start can steer this same turn while a non-blocking question remains open.
     val canMessageDuringInput get() = requests.isNotEmpty() && requests.none { it.isBlocking }

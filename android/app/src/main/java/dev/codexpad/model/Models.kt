@@ -19,7 +19,7 @@ data class InputAnswer(val value: String, val isOption: Boolean = false)
 
 data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null, val artifacts: List<Artifact> = emptyList(),
     val startedAt: Long? = null, val completedAt: Long? = null, val durationMs: Long? = null) {
-    val terminal get() = status in setOf("completed", "failed", "interrupted")
+    val terminal get() = status in setOf("completed", "failed", "interrupted", "cancelled", "stopped")
 }
 data class CodexThread(
     val id: String,

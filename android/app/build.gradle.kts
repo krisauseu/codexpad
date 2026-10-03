@@ -14,11 +14,20 @@ android {
         minSdk = 26
         targetSdk = 37
         testInstrumentationRunner = providers.gradleProperty("codexpad.testRunner").orElse("dev.codexpad.KeystoreTestRunner").get()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
     buildFeatures { compose = true; buildConfig = true }
+    buildTypes {
+        getByName("release") {
+            // Personal pre-release updates retain the certificate used by v0.1.0 and the tablet.
+            // Explicit opt-in; ordinary release builds remain unsigned.
+            if (providers.gradleProperty("codexpad.testSignedRelease").orNull == "true") {
+                signingConfig = signingConfigs.getByName("debug")
+            }
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

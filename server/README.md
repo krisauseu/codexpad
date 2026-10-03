@@ -215,3 +215,14 @@ Offene Callbacks bleiben über Android-Reconnect im langlebigen Adapter erhalten
 Snapshots und periodischer Abgleich ersetzen ein Event-Replay. Ein App-Server-
 Neustart beendet alte Callbacks; sie werden nicht aus historischen Texten erzeugt.
 [Vertrag, echte Tablet-Tests und Grenzen](../docs/verification-user-input.md).
+
+## Accountlimits für die Session-Statusanzeige
+
+Authentifiziertes `GET /account/rate-limits` reicht ausschließlich
+`account/rateLimits/read {}` strukturiert durch. Keine Accountmutation und kein
+generischer RPC-Proxy. `account/rateLimits/updated` und `account/updated` werden
+über die bestehenden, authentifizierten Thread-SSE-Verbindungen an alle
+angeschlossenen Sessions weitergereicht. Alle anderen Notifications bleiben
+threadgebunden. Pufferüberlauf fordert einen erneuten Snapshot-Abgleich.
+Die Android-Anzeige toleriert nicht verfügbare ChatGPT-Limits, etwa bei
+API-Key-Authentifizierung. [Datenquellen](../docs/research/codex-statusline.md).

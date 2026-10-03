@@ -23,6 +23,7 @@ data class UploadImage(val name: String, val mimeType: String, val bytes: ByteAr
 data class UploadText(val name: String, val mimeType: String, val bytes: ByteArray)
 
 interface CodexPadService {
+    suspend fun rateLimits(): WeeklyLimit = WeeklyLimit()
     suspend fun models(): List<CatalogModel>
     suspend fun health(): String
     suspend fun workspaces(): List<Workspace>
@@ -62,6 +63,7 @@ class CodexPadApi(baseUrl: String, private val token: String) : CodexPadService 
     } }
 
     override suspend fun models() = json(request("models")).getJSONArray("models").objects().map(CatalogModel::parse)
+    override suspend fun rateLimits() = WeeklyLimit.parse(json(request("account", "rate-limits")))
     override suspend fun health() = json(request("health")).getString("status")
     override suspend fun workspaces() = json(request("workspaces")).getJSONArray("workspaces").objects()
         .map { Workspace(it.getString("id"), it.getString("name")) }

@@ -1,7 +1,8 @@
 package dev.codexpad.data
 
 import dev.codexpad.model.Wire
-import dev.codexpad.model.ContextUsage
+import dev.codexpad.model.ContextStatus
+import dev.codexpad.model.WeeklyLimit
 import dev.codexpad.model.ModelReroute
 import dev.codexpad.model.InputAnswer
 import dev.codexpad.network.ApiException
@@ -18,7 +19,8 @@ import org.json.JSONObject
 
 data class ThreadState(
     val timeline: Timeline = Timeline(),
-    val usage: ContextUsage = ContextUsage(),
+    val usage: ContextStatus = ContextStatus(),
+    val weekly: WeeklyLimit = WeeklyLimit(),
     val usageTurnId: String? = null,
     val reroutes: Map<String, ModelReroute> = emptyMap(),
     val connection: String = "Lade Thread …",
@@ -175,15 +177,34 @@ class ThreadSession(
         catch (error: Exception) { unknownCompaction(); mutable.update { it.copy(error = connectionError(error)) } }
     }
 
-    fun paused() { unknownCompaction(); mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
+    fun paused() { unknownCompaction(); mutable.update { it.copy(usage = it.usage.outdated(), weekly = it.weekly.outdated(), usageTurnId = null, connected = false, connection = "Pausiert · Zustand wird bei Rückkehr geladen") } }
+
+    private suspend fun refreshLimits() {
+        val before = state.value.weekly
+        try {
+            val latest = api.rateLimits()
+            // A newer pushed limit must win over an in-flight read.
+            mutable.update { if (it.weekly === before) it.copy(weekly = latest) else it }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) {
+            // Account status failure must not interrupt the conversation.
+            mutable.update { if (it.weekly === before) it.copy(weekly = before.outdated()) else it }
+        }
+    }
 
     suspend fun run(): Nothing {
         var backoff = 1_000L
         while (currentCoroutineContext().isActive) {
             try {
-                mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false, connection = "Snapshot und Verlauf laden …") }
+                mutable.update { it.copy(usage = it.usage.outdated(), weekly = it.weekly.outdated(), usageTurnId = null, connected = false, connection = "Snapshot und Verlauf laden …") }
                 refresh(resetLive = true)
                 coroutineScope {
+                    val limits = launch(start = CoroutineStart.UNDISPATCHED) {
+                        while (isActive) {
+                            refreshLimits()
+                            delay(60_000)
+                        }
+                    }
                     val poll = launch {
                         while (isActive) {
                             delay(if (state.value.timeline.busy || state.value.compaction?.pending == true) 5_000 else 15_000)
@@ -211,12 +232,19 @@ class ThreadSession(
                                     check(hasSnapshot) { "SSE-Event ohne initialen Snapshot" }
                                     val method = json.getString("method")
                                     val params = json.optJSONObject("params") ?: JSONObject()
+                                    if (method == "codexpad/overflow") throw IOException("Live-Puffer übergelaufen")
+                                    if (method == "account/rateLimits/updated") {
+                                        WeeklyLimit.update(params)?.let { latest -> mutable.update { it.copy(weekly = latest) } }
+                                    }
+                                    if (method == "account/updated") {
+                                        mutable.update { it.copy(weekly = WeeklyLimit()) }
+                                        launch(start = CoroutineStart.UNDISPATCHED) { refreshLimits() }
+                                    }
                                     if (params.optString("threadId") == threadId) {
-                                        if (method == "codexpad/overflow") throw IOException("Live-Puffer übergelaufen")
                                         mutable.update { state -> state.copy(
                                             timeline = state.timeline.event(method, params),
                                             usage = if (method == "thread/tokenUsage/updated")
-                                                ContextUsage.parse(params.optJSONObject("tokenUsage")).let { usage ->
+                                                ContextStatus.parse(params.optJSONObject("tokenUsage")).let { usage ->
                                                     val compact = state.compaction
                                                     // Resume can replay pre-compact usage. A later turn's measurement
                                                     // (including the compact turn) is required; never invent savings.
@@ -252,14 +280,14 @@ class ThreadSession(
                             }
                         }
                         throw IOException("SSE-Verbindung geschlossen")
-                    } finally { poll.cancel() }
+                    } finally { poll.cancel(); limits.cancel() }
                 }
             } catch (cancelled: CancellationException) {
                 paused()
                 throw cancelled
             } catch (error: Exception) {
                 unknownCompaction()
-                mutable.update { it.copy(usage = it.usage.outdated(), usageTurnId = null, connected = false,
+                mutable.update { it.copy(usage = it.usage.outdated(), weekly = it.weekly.outdated(), usageTurnId = null, connected = false,
                     connection = "Verbindung verloren · erneuter Abgleich in ${backoff / 1000} s",
                     error = connectionError(error)) }
                 delay(backoff)

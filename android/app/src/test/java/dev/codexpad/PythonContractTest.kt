@@ -45,6 +45,7 @@ class PythonContractTest {
         val api = CodexPadApi(base!!, System.getenv("CODEXPAD_ACCESS_TOKEN") ?: error("Missing contract token"))
         assertEquals("ok", api.health())
         assertEquals("fixture-model", api.models().single().model)
+        assertEquals(94, api.rateLimits().remainingPercent)
         val workspace = api.workspaces().single()
         assertEquals("demo space-ä", workspace.id)
         assertTrue(api.threads(workspace.id).isNotEmpty())

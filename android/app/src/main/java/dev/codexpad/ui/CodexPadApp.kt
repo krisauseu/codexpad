@@ -35,11 +35,39 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.codexpad.data.ThreadSession
+import dev.codexpad.data.ThreadState
+import dev.codexpad.model.runningLabel
 import dev.codexpad.model.Message
 import dev.codexpad.model.TransferPolicy
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+@Composable
+private fun SessionStatusLine(state: ThreadState) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
+    LaunchedEffect(lifecycle, state.connected) {
+        now = System.currentTimeMillis() / 1000
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (state.connected) {
+                now = System.currentTimeMillis() / 1000
+                delay(1000)
+            }
+        }
+    }
+    val thread = state.timeline.thread
+    val running = state.timeline.turns.filter { !it.terminal }.singleOrNull()
+    val turnLabel = running?.runningLabel(now)
+        ?: if (state.timeline.busy) "Turn unbekannt" else "Kein laufender Turn"
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("${thread?.model ?: "Modell unbekannt"} · ${thread?.reasoningEffort ?: "Reasoning unbekannt"}",
+            style = MaterialTheme.typography.labelMedium)
+        Text("${state.usage.label} · ${state.weekly.label(now)} · $turnLabel${if (!state.connected) " · letzter Stand" else ""}",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -262,12 +290,7 @@ private fun ColumnScope.ThreadDetail(vm: PadViewModel, session: ThreadSession) {
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Konfiguriert: ${configured?.model ?: "unbekannt"} · Reasoning ${configured?.reasoningEffort ?: "unbekannt"}",
-                    style = MaterialTheme.typography.labelMedium)
-                Text(if (state.usage.used == null && state.usage.window == null) "Kontext: noch keine Nutzungsdaten" else state.usage.label,
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            SessionStatusLine(state)
             if (state.requests.isEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(0.dp), itemVerticalAlignment = Alignment.CenterVertically) {

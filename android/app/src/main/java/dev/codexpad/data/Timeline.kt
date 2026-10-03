@@ -19,7 +19,11 @@ data class Timeline(
                 val byId = streamed.items.associateBy { it.id }
                 val merged = turn.items.filterNot { it.activity == null && it.type in liveTextTypes }
                     .map { byId[it.id] ?: it }
-                turn.copy(items = merged + streamed.items.filter { item -> merged.none { it.id == item.id } })
+                turn.copy(status = if (streamed.terminal) streamed.status else turn.status,
+                    startedAt = turn.startedAt ?: streamed.startedAt,
+                    completedAt = streamed.completedAt ?: turn.completedAt,
+                    durationMs = streamed.durationMs ?: turn.durationMs,
+                    items = merged + streamed.items.filter { item -> merged.none { it.id == item.id } })
             }
         } + live.values.filter { item -> history.none { it.id == item.id } }
     }
@@ -50,7 +54,13 @@ data class Timeline(
         if (turnId.isEmpty() || thread?.turns?.any { it.id == turnId && it.terminal } == true) return this
         val turn = live[turnId] ?: Turn(turnId, "inProgress", emptyList())
         val updated = when (method) {
-            "turn/started" -> turn
+            "turn/started", "turn/completed" -> {
+                val reported = Wire.turn(params.getJSONObject("turn"))
+                if (turn.terminal && method == "turn/started") return this
+                turn.copy(status = reported.status, startedAt = reported.startedAt ?: turn.startedAt,
+                    completedAt = reported.completedAt ?: turn.completedAt, durationMs = reported.durationMs ?: turn.durationMs,
+                    error = reported.error ?: turn.error)
+            }
             "item/agentMessage/delta" -> {
                 val id = params.getString("itemId")
                 val existing = turn.items.find { it.id == id }

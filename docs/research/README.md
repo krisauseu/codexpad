@@ -1,5 +1,8 @@
 # Recherche und Wiedereinstieg
 
+Aktuelle Ergänzung: [Statusline-Datenquellen und Grenzen](codex-statusline.md)
+(3. Oktober 2026, Codex 0.160.0).
+
 Stand: 18. September 2026, nach Konsolidierung zweier Linux-Spikes und begrenztem Remote-Trust-Research.
 
 ## Lesereihenfolge

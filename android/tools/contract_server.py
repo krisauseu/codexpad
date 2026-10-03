@@ -44,6 +44,10 @@ class FixtureBackend:
 
     def call(self, method, params, timeout=60):
         with self.lock:
+            if method == "account/rateLimits/read":
+                return {"rateLimits": None, "rateLimitsByLimitId": {"codex": {
+                    "primary": {"usedPercent": 12, "windowDurationMins": 300},
+                    "secondary": {"usedPercent": 6, "windowDurationMins": 10080, "resetsAt": 2000000000}}}}
             if method == "model/list":
                 return {"data": [{"id": "fixture-catalog", "model": "fixture-model", "displayName": "Fixture",
                                   "description": "Contract model", "isDefault": True,

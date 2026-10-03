@@ -19,11 +19,11 @@ class ModelSelectionTest {
     }
 
     @Test fun contextUsesLastAndOnlyPositiveKnownWindows() {
-        fun usage(window: String) = ContextUsage.parse(JSONObject("""{"last":{"totalTokens":120},"total":{"totalTokens":9999},"modelContextWindow":$window}"""))
+        fun usage(window: String) = ContextStatus.parse(JSONObject("""{"last":{"totalTokens":120},"total":{"totalTokens":9999},"modelContextWindow":$window}"""))
         assertEquals(120L, usage("100").used)
-        assertEquals(0L, usage("100").remaining)
-        for (window in listOf("null", "0", "-1")) assertNull(usage(window).remaining)
-        assertNull(ContextUsage.parse(JSONObject("""{"last":{"totalTokens":12}}""")).window)
-        assertNull(ContextUsage.parse(null).remaining)
+        assertEquals(0, usage("100").remainingPercent)
+        for (window in listOf("null", "0", "-1")) assertNull(usage(window).remainingPercent)
+        assertNull(ContextStatus.parse(JSONObject("""{"last":{"totalTokens":12}}""")).window)
+        assertNull(ContextStatus.parse(null).remainingPercent)
     }
 }

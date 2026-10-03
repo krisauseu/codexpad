@@ -17,7 +17,8 @@ data class InputRequest(val id: String, val threadId: String, val turnId: String
     val isBlocking: Boolean, val questions: List<InputQuestion>)
 data class InputAnswer(val value: String, val isOption: Boolean = false)
 
-data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null, val artifacts: List<Artifact> = emptyList()) {
+data class Turn(val id: String, val status: String, val items: List<Message>, val error: String? = null, val artifacts: List<Artifact> = emptyList(),
+    val startedAt: Long? = null, val completedAt: Long? = null, val durationMs: Long? = null) {
     val terminal get() = status in setOf("completed", "failed", "interrupted")
 }
 data class CodexThread(
@@ -59,6 +60,9 @@ object Wire {
         status = json.optString("status", "unknown"),
         items = json.optJSONArray("items")?.objects()?.map(::message).orEmpty(),
         error = json.optJSONObject("error")?.optionalText("message"),
+        startedAt = json.nonnegativeLong("startedAt"),
+        completedAt = json.nonnegativeLong("completedAt"),
+        durationMs = json.nonnegativeLong("durationMs"),
         artifacts = json.optJSONArray("artifacts")?.objects()?.map {
             Artifact(it.getString("id"), it.getString("name"), it.getString("mimeType"), it.getLong("size"))
         }.orEmpty(),

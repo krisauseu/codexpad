@@ -1,5 +1,9 @@
 # Prüfnachweis: Modell, Reasoning und Kontext
 
+Historischer Nachweis. Die damalige absolute Kontext-Restschätzung wurde am
+3. Oktober 2026 durch die [Codex-Statusline-Berechnung](research/codex-statusline.md)
+ersetzt; dieser Bericht belegt nicht die neue Prozent-/Limit-/Zeitanzeige.
+
 25. September 2026. Implementierung auf Basis des Capability-Audits für 0.156.1.
 Die bereits vorhandenen, uncommitteten Interrupt-Änderungen wurden erhalten.
 Keine ADR-Änderungen, kein Deployment und keine Modellaufrufe gegen den VPS.

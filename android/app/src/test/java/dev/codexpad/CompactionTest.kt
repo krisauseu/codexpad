@@ -94,7 +94,7 @@ class CompactionTest {
         backend.usage("compact", 20); runCurrent()
         assertFalse(session.state.value.usage.stale)
         assertEquals(20L, session.state.value.usage.used)
-        assertEquals(80L, session.state.value.usage.remaining)
+        assertEquals(0, session.state.value.usage.remainingPercent)
         assertTrue(session.state.value.canCompact)
         session.acknowledge(backend.startTurn("t", "Continue", null, null))
         assertTrue(session.state.value.timeline.busy)

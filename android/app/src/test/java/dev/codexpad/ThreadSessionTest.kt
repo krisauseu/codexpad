@@ -29,6 +29,15 @@ class ThreadSessionTest {
             interruptAction()
         }
         var usageReplay = false
+        var limit: WeeklyLimit = WeeklyLimit()
+        var limitsFail = false
+        var limitPush = false
+        var limitAction: suspend () -> Unit = {}
+        override suspend fun rateLimits(): WeeklyLimit {
+            limitAction()
+            if (limitsFail) throw IOException("Limits unavailable")
+            return limit
+        }
         var disconnect = false
         var connections = 0
         var posts = 0
@@ -65,6 +74,10 @@ class ThreadSessionTest {
             if (toolMode) snapshotJson.getJSONObject("thread").getJSONArray("turns").getJSONObject(0)
                 .getJSONArray("items").put(toolJson())
             emit(SseFrame("snapshot", snapshotJson.toString()))
+            if (limitPush) {
+                emit(SseFrame("event", """{"method":"account/rateLimits/updated","params":{"rateLimits":{"limitId":"codex","secondary":{"usedPercent":6,"windowDurationMins":10080}}}}"""))
+                emit(SseFrame("event", """{"method":"account/rateLimits/updated","params":{"rateLimits":{"limitId":"other","secondary":{"usedPercent":90,"windowDurationMins":10080}}}}"""))
+            }
             if (toolMode) emit(SseFrame("event", """{"method":"item/commandExecution/outputDelta","params":{"threadId":"t","turnId":"turn","itemId":"cmd","delta":"slice $connections"}}"""))
             if (usageReplay) {
                 emit(SseFrame("event", """{"method":"thread/tokenUsage/updated","params":{"threadId":"t","tokenUsage":{"last":{"totalTokens":30},"total":{"totalTokens":900},"modelContextWindow":100}}}"""))
@@ -152,7 +165,7 @@ class ThreadSessionTest {
         assertEquals(30L, session.state.value.usage.used)
         advanceTimeBy(1000); runCurrent()
         assertFalse(session.state.value.usage.stale)
-        assertEquals(70L, session.state.value.usage.remaining)
+        assertEquals(0, session.state.value.usage.remainingPercent)
         assertEquals("configured", session.state.value.timeline.thread?.model)
         assertEquals("custom", session.state.value.timeline.thread?.reasoningEffort)
         assertEquals("runtime", session.state.value.reroutes["turn"]?.to)
@@ -166,7 +179,42 @@ class ThreadSessionTest {
         val session = ThreadSession(FakeServer(), "t")
         backgroundScope.launch { session.run() }; runCurrent()
         assertNull(session.state.value.usage.used)
-        assertNull(session.state.value.usage.remaining)
+        assertNull(session.state.value.usage.remainingPercent)
+    }
+
+    @Test fun accountLimitsUpdateAcrossGlobalEventsFailureAndReconnect() = runTest {
+        val server = FakeServer().apply { limitPush = true }
+        val session = ThreadSession(server, "t")
+        val job = backgroundScope.launch { session.run() }; runCurrent()
+        assertEquals(94, session.state.value.weekly.remainingPercent)
+        server.limitsFail = true
+        advanceTimeBy(60000); runCurrent()
+        assertTrue(session.state.value.connected)
+        assertTrue(session.state.value.weekly.stale)
+        assertEquals(94, session.state.value.weekly.remainingPercent)
+        job.cancel(); runCurrent()
+        server.limitPush = false
+        server.limitsFail = false
+        server.limit = WeeklyLimit(93)
+        backgroundScope.launch { session.run() }; runCurrent()
+        assertEquals(93, session.state.value.weekly.remainingPercent)
+        assertFalse(session.state.value.weekly.stale)
+        assertEquals(0, server.posts)
+    }
+
+    @Test fun pushedLimitsWinOverOlderInFlightRead() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val server = FakeServer().apply {
+            limitPush = true
+            limit = WeeklyLimit(99)
+            limitAction = { gate.await() }
+        }
+        val session = ThreadSession(server, "t")
+        backgroundScope.launch { session.run() }; runCurrent()
+        assertEquals(94, session.state.value.weekly.remainingPercent)
+        gate.complete(Unit); runCurrent()
+        assertEquals(94, session.state.value.weekly.remainingPercent)
+        assertTrue(session.state.value.connected)
     }
 
     @Test fun interruptWaitsForHistoryAndSuppressesDoubleTap() = runTest {

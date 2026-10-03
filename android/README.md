@@ -180,7 +180,7 @@ Prozessneustart sowie URL-Manipulation und entfernt anschließend die Testdaten.
 
 Die Composer-Chips öffnen native Auswahldialoge. Modellname und Beschreibung sowie
 Efforts stammen aus `GET /models`; „Katalogdefault“ ist keine Aussage über den Thread.
-Die Zeile „Konfiguriert“ verwendet ausschließlich nullable `Thread.model` und
+Die kompakte Statusanzeige verwendet ausschließlich nullable `Thread.model` und
 `Thread.reasoningEffort` aus dem Serverabgleich. Fehlende Werte bleiben unbekannt.
 Eine Auswahl ist lokal für die nächste Nachricht vorgemerkt und verwerfbar. Ein
 Modellwechsel erhält einen kompatiblen Effort oder wählt Katalogdefault/ersten
@@ -191,13 +191,28 @@ Danach liest der bestehende Abgleich den tatsächlichen Zustand. Bei Antwortverl
 bleibt der bestehende unbestätigte Sendevorgang ohne automatische Wiederholung.
 Vormerkungen leben im ViewModel (Rotation), nicht dauerhaft über Prozessverlust.
 
-Kontext stammt ausschließlich aus `thread/tokenUsage/updated`: verwendet ist
-`last.totalTokens`, niemals der kumulierte `total`-Wert. Nur positive bekannte
-`modelContextWindow`-Werte erlauben die Restschätzung `max(0, Fenster - verwendet)`.
+Kontextrest in Prozent stammt aus `thread/tokenUsage/updated`: `last.totalTokens`
+und positives `modelContextWindow`, berechnet mit der Codex-TUI-Formel samt
+12.000-Token-Baseline. Die bisherige absolute Restschätzung entfällt vollständig.
 Fehlende Werte heißen „unbekannt“. Pause, Reconnect und Overflow markieren bekannte
 Usage als „veraltet“; weder History noch SSE-Snapshot machen sie aktuell. Erst ein
 neues Usage-Event einschließlich Resume-Replay tut das. Reroutes werden pro Turn
 als Laufzeitumleitung angezeigt und verändern Modell/Effort des Threads nicht.
+
+Das accountweite Wochenlimit stammt aus `GET /account/rate-limits` sowie den
+globalen `account/rateLimits/updated`-Events. Nur ein Wochenfenster des Buckets
+`codex` wird angezeigt; Rest = 100 − usedPercent. Der Client liest beim Öffnen/
+Reconnect und alle 60 Sekunden erneut. Fehler beeinflussen den Chat nicht und
+kennzeichnen den letzten bekannten Wert als veraltet. Ein Reset wird nicht
+lokal angenommen. `account/updated` verwirft alte Kontolimits und liest neu.
+
+Laufende Turns zeigen ID und Dauer ab dem gemeldeten `startedAt`. Die Uhr
+aktualisiert sich jede Sekunde während sichtbarer, verbundener Anzeige.
+Ohne gemeldete Startzeit bleibt die Dauer unbekannt; offline zeigt sie den
+letzten Stand. History/Events übernehmen außerdem `completedAt` und `durationMs`.
+Keine Rekonstruktion aus UUID oder Empfangszeit.
+
+[Quellen, Codex-Formel und API-Grenzen](../docs/research/codex-statusline.md).
 
 [Prüfnachweis und Grenzen dieses Slices](../docs/verification-model-context.md).
 

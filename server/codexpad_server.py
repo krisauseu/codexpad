@@ -240,16 +240,18 @@ class AppServer:
     def publish(self, message):
         params = message.get("params") or {}
         thread_id = params.get("threadId") or (params.get("thread") or {}).get("id")
-        if thread_id:
+        account_event = message.get("method") in ("account/rateLimits/updated", "account/updated")
+        if thread_id or account_event:
             with self.lock:
-                listeners = list(self.subscribers.get(thread_id, ()))
+                listeners = (list({listener for group in self.subscribers.values() for listener in group})
+                             if account_event else list(self.subscribers.get(thread_id, ())))
             for listener in listeners:
                 try:
                     listener.put_nowait(message)
                 except queue.Full:
                     try:
                         listener.get_nowait()
-                        listener.put_nowait({"method": "codexpad/overflow", "params": {"threadId": thread_id}})
+                        listener.put_nowait({"method": "codexpad/overflow", "params": {}})
                     except (queue.Empty, queue.Full):
                         pass
 
@@ -795,6 +797,8 @@ class Handler(BaseHTTPRequestHandler):
             return (200, {"status": "ok"}) if APP is not None and APP.proc.poll() is None else (503, {"status": "unavailable"})
         if method == "GET" and parts == ["models"]:
             return 200, {"models": models()}
+        if method == "GET" and parts == ["account", "rate-limits"]:
+            return 200, APP.call("account/rateLimits/read", {})
         if method == "GET" and parts == ["workspaces"]:
             return 200, {"workspaces": [{"id": key, "name": key} for key in sorted(workspaces())]}
         if method == "POST" and parts == ["workspaces"]:
